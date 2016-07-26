@@ -1,0 +1,4 @@
+interpolation/approxTypes/approxType.C
+
+LIB = $(FOAM_USER_LIBBIN)/libfiniteVolumeAtmosFOAMtools
+
