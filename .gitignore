@@ -10,11 +10,12 @@
 
 # Large files #
 ###############
-*pdf
-*ps
-*gif
-*dat
-*png
+*.pdf
+*.ps
+*.eps
+*.gif
+*.dat
+*.png
 
 # Build directories
 ###################
