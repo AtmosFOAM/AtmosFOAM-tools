@@ -9,7 +9,11 @@
 
 ## Installation
 First, install [OpenFOAM 4 or dev](http://www.openfoam.org/download/).
-Second, set the variable the ATMOSFOAM_TOOLS_SRC in the .bashrc file:
+
+Second, set the variables the ATMOSFOAM_TOOLS_SRC and GMTU in the .bashrc file:
+
 export ATMOSFOAM_TOOLS_SRC=$HOME/$WM_PROJECT/$USER-$WM_PROJECT_VERSION/AtmosFOAM-tools/src
+export GMTU=$HOME/$WM_PROJECT/$USER-$WM_PROJECT_VERSION/AtmosFOAM-tools/gmtUser
+
 Third compile AtmosFOAM-tools using Allwmake
 
