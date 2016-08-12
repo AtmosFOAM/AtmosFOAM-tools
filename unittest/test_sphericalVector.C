@@ -21,6 +21,22 @@ TEST_CASE("cartesianVelocityAtEquatorOnPrimeMeridian")
     check(velocity.toCartesian(p), vector(-2, 3, 4));
 }
 
+TEST_CASE("cartesianVelocityAtNorthPole")
+{
+    sphericalVector velocity(3, 4, -2);
+    sphericalVector p(0, 0, 5);
+
+    check(velocity.toCartesian(p), vector(4, -3, -2));
+}
+
+TEST_CASE("cartesianVelocityAtSouthPole")
+{
+    sphericalVector velocity(3, 4, -2);
+    sphericalVector p(0, 0, -5);
+
+    check(velocity.toCartesian(p), vector(-4, -3, 2));
+}
+
 TEST_CASE("unitTensorAtEquatorOnPrimeMeridian")
 {
     sphericalVector p(5, 0, 0);

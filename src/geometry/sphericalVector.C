@@ -23,7 +23,26 @@ Foam::tensor Foam::sphericalVector::unitTensor() const
 {
     const vector kHat(0,0,1);
     const vector rHat = v / mag(v);
-    const vector latHat = rHat ^ (kHat ^ rHat);
+
+    vector latHat;
+    if (mag(kHat ^ rHat) < VSMALL)
+    {
+        if ((kHat & rHat) > VSMALL)
+        {
+            // North Pole
+            latHat = vector(1, 0, 0);
+        }
+        else
+        {
+            // South Pole
+            latHat = vector(-1, 0, 0);
+        }
+    }
+    else
+    {
+        latHat = rHat ^ (kHat ^ rHat);
+    }
+
     const vector lonHat = latHat ^ rHat;
     // TODO: use tmp<tensor>?
     return tensor(lonHat, latHat, rHat);
