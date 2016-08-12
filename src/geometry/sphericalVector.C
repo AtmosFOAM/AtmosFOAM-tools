@@ -1,0 +1,30 @@
+#include "sphericalVector.H"
+
+#include "vector.H"
+#include "tensor.H"
+
+Foam::sphericalVector::sphericalVector
+(
+        const scalar u,
+        const scalar v,
+        const scalar w
+)
+:
+    v(vector(u, v, w))
+{};
+
+Foam::vector Foam::sphericalVector::toCartesian(const sphericalVector& point) const
+{
+    if (mag(point.v) < VSMALL) return vector(0,0,0);
+    return point.unitTensor().inv() & v;
+}
+
+Foam::tensor Foam::sphericalVector::unitTensor() const
+{
+    const vector kHat(0,0,1);
+    const vector rHat = v / mag(v);
+    const vector latHat = rHat ^ (kHat ^ rHat);
+    const vector lonHat = latHat ^ rHat;
+    // TODO: use tmp<tensor>?
+    return tensor(lonHat, latHat, rHat);
+}

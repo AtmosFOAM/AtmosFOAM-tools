@@ -1,4 +1,4 @@
-sphericalVelocity.C
+sphericalVector.C
 
 LIB = $(FOAM_USER_LIBBIN)/libgeometry
 

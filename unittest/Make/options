@@ -1,5 +1,7 @@
 EXE_INC = -g \
-    -Wno-old-style-cast
+    -I$(ATMOSFOAM_TOOLS_SRC)/geometry/lnInclude
 
 EXE_LIBS = \
-    -L$(FOAM_USER_LIBBIN)
+    -L$(FOAM_USER_LIBBIN) \
+    -lOpenFOAM \
+    -lgeometry
