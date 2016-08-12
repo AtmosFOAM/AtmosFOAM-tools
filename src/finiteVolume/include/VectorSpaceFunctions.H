@@ -194,23 +194,6 @@ inline vector expMapOnSphere(const vector& xi, const vector& map)
                              -e[1],e[0],0)*sin(theta);
     
     return transform & xi;
-    
-//    tensor transform(xi, map, (xi ^ map));
-//    vector x = sqr(r)*(inv(transform)&vector(cos(theta), theta*sin(theta), 0));
-//    vector check = (transform & x);
-//    
-//    Info << "\nMapping point " << xi << " with map " << map
-//         << nl << " with transform " << transform << " r = " << r
-//         << " theta = " << theta << nl << " to point "
-//         << x << " with radius " << mag(x)
-//         << nl << "det(transform) = " << det(transform)
-//         << " check = " << check << " RHS = " 
-//         << sqr(r)*vector(cos(theta), theta*sin(theta), 0)
-//         << nl << "inv(transform) = " << inv(transform)
-//         << nl << "inv(transform) * transform = "
-//         << inv(transform) & transform << nl;
-//    
-//    return r*(inv(transform)&vector(cos(theta), theta*sin(theta), 0));
 }
 
 
