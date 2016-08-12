@@ -3,6 +3,8 @@
 #include "vector.H"
 #include "tensor.H"
 
+Foam::sphericalVector::sphericalVector(const vector v) : v(v) {};
+
 Foam::sphericalVector::sphericalVector
 (
         const scalar u,

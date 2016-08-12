@@ -12,6 +12,8 @@ namespace Foam
 class sphericalVector
 {
     public:
+    sphericalVector(const vector v);
+
     sphericalVector
     (
         const scalar u,
