@@ -43,6 +43,7 @@ Foam::tensor Foam::sphericalVector::unitTensor() const
     else
     {
         latHat = rHat ^ (kHat ^ rHat);
+        latHat /= mag(latHat);
     }
 
     const vector lonHat = latHat ^ rHat;

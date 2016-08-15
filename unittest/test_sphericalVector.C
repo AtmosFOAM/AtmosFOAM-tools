@@ -37,6 +37,14 @@ TEST_CASE("cartesianVelocityAtSouthPole")
     check(velocity.toCartesian(p), vector(-4, -3, 2));
 }
 
+TEST_CASE("cartesianVelocityAt45N")
+{
+    sphericalVector velocity(0, 1, 0);
+    sphericalVector p(1, 0, 1);
+
+    check(velocity.toCartesian(p), vector(-Foam::sqrt(0.5), 0, Foam::sqrt(0.5)));
+}
+
 TEST_CASE("unitTensorAtEquatorOnPrimeMeridian")
 {
     sphericalVector p(5, 0, 0);
