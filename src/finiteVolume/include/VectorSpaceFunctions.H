@@ -83,7 +83,7 @@ inline scalar angleBetween(const point& a, const point& b)
     return theta;
 }
 
-//- Approximate distance between 2 points on a sphere
+//- Distance between 2 points on a sphere
 inline scalar arcLength(const point& a, const point& b)
 {
     const scalar ra = mag(a);
