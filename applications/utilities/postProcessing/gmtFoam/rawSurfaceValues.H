@@ -171,7 +171,7 @@ systemVerbose(systemCall);
 // Plot legend
 if (!separateLegend)
 {
-    systemCall = "psscale -CcolourScale.cpt -S -E -K -O ";
+    systemCall = "gmt psscale -CcolourScale.cpt -S -E -K -O ";
     systemCall += " -D9c/-0.5c/18c/0.5ch -B"
                + stringScalar(2*colourStep) + " >> " + epsFile;
     systemVerbose(systemCall);
@@ -189,7 +189,7 @@ else
     Info << "Creating legends/" << legNameH << " and legends/" << legNameV
         << endl;
 
-    systemCall2 = "psscale -C../colourScale.cpt -S -E ";
+    systemCall2 = "gmt psscale -C../colourScale.cpt -S -E ";
     if (!autoscale)
     {
         systemCall2 = systemCall2 + " -B" + stringScalar(2*mag(colourStep));
