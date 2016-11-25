@@ -191,7 +191,7 @@ scalar maxSsf = 0;
 }
 
 // colourscale for plot
-systemCall = "makecpt -C" + fieldsToPlot[ifield].colourScale();
+systemCall = "gmt makecpt -C" + fieldsToPlot[ifield].colourScale();
 if (colourStep > 0)
 {
     systemCall += " -Z -D -T" + stringScalar(colourMin,4)/stringScalar(colourMax,4)
@@ -204,7 +204,7 @@ else
 }
 systemVerbose(systemCall);
 // main colour plot
-systemCall = "psxy '" + tmpFile + "' -CcolourScale.cpt"
+systemCall = "gmt psxy '" + tmpFile + "' -CcolourScale.cpt"
                            + " -J -R -h1 -L -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
@@ -254,7 +254,7 @@ if (annotate == "minMax")
                + stringScalar(annotateY) + " 12 0 Times-Roman TL "
                + "min = " + stringScalar(minSsf,5)
                + "    max = " + stringScalar(maxSsf,5);
-    systemCall += "' | pstext -J -R -h0 -N -O -K >>" + epsFile;
+    systemCall += "' | gmt pstext -J -R -h0 -N -O -K >>" + epsFile;
     systemVerbose(systemCall);
 }
 

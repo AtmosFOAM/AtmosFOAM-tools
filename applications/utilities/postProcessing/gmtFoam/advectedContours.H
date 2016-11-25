@@ -97,7 +97,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot contours
-systemCall = "makecpt -C" + fieldsToPlot[ifield].colourScale();
+systemCall = "gmt makecpt -C" + fieldsToPlot[ifield].colourScale();
 if (colourStep > 0)
 {
     systemCall += " -Z -D -T" + stringScalar(colourMin)/stringScalar(colourMax)
@@ -110,11 +110,11 @@ else
 }
 systemVerbose(systemCall);
 
-systemCall = "psxy '" + tmpFile + "' -CcolourScale.cpt"
+systemCall = "gmt psxy '" + tmpFile + "' -CcolourScale.cpt"
                            + " -J -R -h1 -W+1p -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
-systemCall = "psxy '" + tmpFile + "' -J -R -h1 -Sp -O -K >> " + epsFile;
+systemCall = "gmt psxy '" + tmpFile + "' -J -R -h1 -Sp -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
 // Plot legend

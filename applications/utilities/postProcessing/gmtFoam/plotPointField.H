@@ -58,7 +58,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot vectors
-systemCall = "psxy '" + tmpFile + "' -J -R -h1 -Sx0.1i"
+systemCall = "gmt psxy '" + tmpFile + "' -J -R -h1 -Sx0.1i"
                   + " -W -O -K >> " + epsFile;
 systemVerbose(systemCall);
 

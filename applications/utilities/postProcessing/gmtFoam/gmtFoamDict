@@ -21,7 +21,6 @@ projection2D XY;                // how to go from 3d to 2d
 
 // A list of the fields to plot with plotting details
 FieldsToPlot
-3                               // number of fields to plot
 (
 
 // For each field to plot there should be a line like:

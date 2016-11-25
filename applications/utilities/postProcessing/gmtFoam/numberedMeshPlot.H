@@ -224,7 +224,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot mesh
-systemCall = "pstext '" + tmpFile + "' -W"
+systemCall = "gmt pstext '" + tmpFile + "' -W"
                   + fieldsToPlot[ifield].colourScale()
                            + " -J -R -K -O >>" + epsFile;
 systemVerbose(systemCall);

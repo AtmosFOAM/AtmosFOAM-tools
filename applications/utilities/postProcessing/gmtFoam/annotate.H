@@ -17,7 +17,7 @@ if (annotate != "" && annotate != "minMax")
                    + stringScalar(annotateY) + " 12 0 Times-Roman TL " + annotate;
     }
     
-    systemCall += "' | pstext -J -R -h0 -N -K -O >>" + epsFile;
+    systemCall += "' | gmt pstext -J -R -h0 -N -K -O >>" + epsFile;
     systemVerbose(systemCall);
 }
 
@@ -26,7 +26,7 @@ if (xlabel != "")
     systemCall = "echo '" + stringScalar(xlabelLoc.first()) + " "
                + stringScalar(xlabelLoc.second()) + " 12 0 Times-Roman TL " + xlabel;
     
-    systemCall += "' | pstext -J -R -h0 -N -K -O >>" + epsFile;
+    systemCall += "' | gmt pstext -J -R -h0 -N -K -O >>" + epsFile;
     systemVerbose(systemCall);
 }
 
@@ -35,7 +35,7 @@ if (ylabel != "")
     systemCall = "echo '" + stringScalar(ylabelLoc.first()) + " "
                + stringScalar(ylabelLoc.second()) + " 12 90 Times-Roman TL " + ylabel;
     
-    systemCall += "' | pstext -J -R -h0 -N -K -O >>" + epsFile;
+    systemCall += "' | gmt pstext -J -R -h0 -N -K -O >>" + epsFile;
     systemVerbose(systemCall);
 }
 

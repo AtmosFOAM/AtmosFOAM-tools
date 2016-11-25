@@ -103,7 +103,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot contours
-systemCall = "makecpt -N -T"
+systemCall = "gmt makecpt -N -T"
          + stringScalar(colourMin)/stringScalar(colourMax)
            /stringScalar(colourStep) + " > contours.cpt";
 systemVerbose(systemCall);
@@ -114,7 +114,7 @@ if(fieldsToPlot[ifield].plotType() == FieldToPlot::DASHED_CONTOURS)
     contourType = "-";
 }
 
-systemCall = "pscontour '" + tmpFile + "' -Ccontours.cpt"
+systemCall = "gmt pscontour '" + tmpFile + "' -Ccontours.cpt"
            //+ " -A+kblack -J -R -h1 -W"
            + " -A- -J -R -h1 -W"
            + contourType + " -O -K >> " + epsFile;

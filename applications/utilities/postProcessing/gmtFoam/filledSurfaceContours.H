@@ -134,13 +134,13 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // colourscale for plot
-systemCall = "makecpt -D -C" + fieldsToPlot[ifield].colourScale()
+systemCall = "gmt makecpt -D -C" + fieldsToPlot[ifield].colourScale()
                   + " -T" + stringScalar(colourMin)/stringScalar(colourMax)
                             /stringScalar(colourStep) + " > colourScale.cpt";
 systemVerbose(systemCall);
 
 // plot filled contours
-systemCall = "pscontour '" + tmpFile + "' -CcolourScale.cpt"
+systemCall = "gmt pscontour '" + tmpFile + "' -CcolourScale.cpt"
            + " -A- -J -R -h1 -I -O -K >> " + epsFile;
 systemVerbose(systemCall);
 

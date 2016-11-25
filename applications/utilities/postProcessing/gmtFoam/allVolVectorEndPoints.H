@@ -109,13 +109,13 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot vectors and dots at the start
-systemCall = "psxy '" + tmpFile + "' -J -R -h1 -Sx2p"
+systemCall = "gmt psxy '" + tmpFile + "' -J -R -h1 -Sx2p"
                   + " -W" + fieldsToPlot[ifield].colourScale()
                 //  + " -G" + fieldsToPlot[ifield].colourScale()
                   + " -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
-systemCall = "psxy '" + tmpFile + "' -J -R -h1 -Sv0.5i+s+e+n"
+systemCall = "gmt psxy '" + tmpFile + "' -J -R -h1 -Sv0.5i+s+e+n"
                   + stringScalar(100./vectorScale)
            + " -W" + fieldsToPlot[ifield].colourScale()
         //   + " -G" + fieldsToPlot[ifield].colourScale()

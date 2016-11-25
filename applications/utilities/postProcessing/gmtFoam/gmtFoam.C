@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
         if ( !overlay)
         {
-            systemCall = "echo 0 0 | psxy -R" + region + " -J"
+            systemCall = "echo 0 0 | gmt psxy -R" + region + " -J"
                               + projection + " -A -K > " + epsFile;
             systemVerbose(systemCall);
         }
@@ -467,7 +467,7 @@ int main(int argc, char *argv[])
         // finishing off
         if (lastPlot)
         {
-            systemCall = "psbasemap -R" + region + " -J"
+            systemCall = "gmt psbasemap -R" + region + " -J"
                               + projection
                               + " -B" + boundaryMarks
                               + " -O >>"

@@ -98,7 +98,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 //                    OStringStream ostrS;
 //                    ostrS << p.x() << ' ' << p.y() << " 12 0 4 CM " << faceI;
 //                    systemCall = "echo " + ostrS.str()
-//                                      + " | pstext  -J -R -h0 -K -O >>"
+//                                      + " | gmt pstext  -J -R -h0 -K -O >>"
 //                                      + epsFile;
 //                    systemVerbose(systemCall);
 //                }
@@ -175,7 +175,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot mesh
-systemCall = "psxy '" + tmpFile + "' -W"
+systemCall = "gmt psxy '" + tmpFile + "' -W"
                   + fieldsToPlot[ifield].colourScale()
                            + " -J -R -h1 -L -K -O >>" + epsFile;
 systemVerbose(systemCall);

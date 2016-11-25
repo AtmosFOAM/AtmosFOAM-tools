@@ -168,7 +168,7 @@ scalar maxMagU = 0;
 }
 
 // plot vectors
-systemCall = "psxy '" + tmpFile + "' -J -R -h1 -Sv0.3c+s+e"
+systemCall = "gmt psxy '" + tmpFile + "' -J -R -h1 -Sv0.3c+s+e"
                   +"+n" + stringScalar(0.3) //100./vectorScale)
                   + " -W" + fieldsToPlot[ifield].colourScale()
                   + " -G" + fieldsToPlot[ifield].colourScale()
@@ -181,7 +181,7 @@ if (writeVectorMax)
     systemCall = "echo '" + stringScalar(vectorMaxX) + " "
                + stringScalar(vectorMaxY) + " 12 0 Times-Roman TL "
                + "maximum vector = " + stringScalar(maxMagU,4);
-    systemCall += "' | pstext -J -R -h0 -N -O -K >>" + epsFile;
+    systemCall += "' | gmt pstext -J -R -h0 -N -O -K >>" + epsFile;
     systemVerbose(systemCall);
 }
 

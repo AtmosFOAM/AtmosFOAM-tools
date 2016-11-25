@@ -92,7 +92,7 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // plot mesh
-systemCall = "psxy '" + tmpFile + "' -S"+ fieldsToPlot[ifield].colourScale()
+systemCall = "gmt psxy '" + tmpFile + "' -S"+ fieldsToPlot[ifield].colourScale()
                   + " -J -R -h1 -K -O >>" + epsFile;
 systemVerbose(systemCall);
 

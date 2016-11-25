@@ -118,13 +118,13 @@ fileName tmpFile = args.rootPath() / args.caseName()
 }
 
 // colourscale for plot
-systemCall = "makecpt -C" + fieldsToPlot[ifield].colourScale()
+systemCall = "gmt makecpt -C" + fieldsToPlot[ifield].colourScale()
                 + " -Z -D -T" + stringScalar(colourMin)/stringScalar(colourMax)
                            /stringScalar(colourStep) + " > colourScale.cpt";
 systemVerbose(systemCall);
 
 // main colour plot
-systemCall = "psxy '" + tmpFile + "' -CcolourScale.cpt"
+systemCall = "gmt psxy '" + tmpFile + "' -CcolourScale.cpt"
                            + " -J -R -h1 -W -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
