@@ -9,8 +9,8 @@ set -e
     exit 1
 }
 
-[ -d "$ATMOSFOAM_SRC" ] || {
-    echo "Error: ATMOSFOAM_SRC directory does not exist"
+[ -d "$ATMOSFOAM_TOOLS_SRC" ] || {
+    echo "Error: ATMOSFOAM_TOOLS_SRC directory does not exist"
     echo "    Check the OpenFOAM entries in your dot-files and source them."
     exit 1
 }
