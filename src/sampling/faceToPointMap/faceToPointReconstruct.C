@@ -26,7 +26,10 @@ License
 #include "faceToPointReconstruct.H"
 #include "fvMesh.H"
 #include "surfaceFields.H"
+#include "volPointInterpolation.H"
 #include "pointFields.H"
+#include "volFields.H"
+#include "pointConstraints.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -136,8 +139,21 @@ tmp
         }
     }
 
+    // Calculate the gradient on the points
     grad.ref().Field<vector>::operator=(inv(invTensor) & Field<vector>(grad.ref()));
-    grad.correctBoundaryConditions();
+    
+//    // Apply boundary conditions
+//    volPointInterpolation vpi(mesh);
+//    GeometricField<GradType, fvPatchField, volMesh> vf
+//         = fvc::reconstruct(ssf*mesh.magSf());
+//    vf.correctBoundaryConditions();
+////    grad = vpi.interpolate(vf);
+////    ssf.write();
+////    Info << "vf boundary = " << vf.boundaryField() << endl;
+//    vpi.interpolateBoundaryField(vf, grad);
+
+//    const pointConstraints& pcs = pointConstraints::New(grad.mesh());
+//    pcs.constrain(grad, false);
     
     return treconField;
 }
