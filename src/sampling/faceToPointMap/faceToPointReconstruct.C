@@ -26,10 +26,12 @@ License
 #include "faceToPointReconstruct.H"
 #include "fvMesh.H"
 #include "surfaceFields.H"
-#include "volPointInterpolation.H"
 #include "pointFields.H"
-#include "volFields.H"
+
+//#include "volPointInterpolation.H"
+//#include "volFields.H"
 #include "pointConstraints.H"
+//#include "cyclicPointPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -68,13 +70,19 @@ tmp
             IOobject("volIntegrate("+ssf.name()+')', ssf.instance(), mesh),
             pointMesh::New(mesh),
             dimensioned<GradType>("", ssf.dimensions(), GradType::zero),
-            "zeroGradient"
+            "calculated"
         )
     );
     GeometricField<GradType, pointPatchField, pointMesh>& grad = treconField.ref();
     
     // The tensor to invert to find the least squares reconstruction
-    tensorField invTensor(mesh.nPoints(), tensor::zero);
+    GeometricField<tensor, pointPatchField, pointMesh> invTensor
+    (
+        IOobject("invTensor", ssf.instance(), mesh),
+        pointMesh::New(mesh),
+        dimensioned<tensor>("", dimless, tensor::zero),
+        "calculated"
+    );
     
     // Loop over all faces and add contribution of gradeint to the points
     // and contribution to the tensor
@@ -139,22 +147,13 @@ tmp
         }
     }
 
-    // Calculate the gradient on the points
-    grad.ref().Field<vector>::operator=(inv(invTensor) & Field<vector>(grad.ref()));
-    
-//    // Apply boundary conditions
-//    volPointInterpolation vpi(mesh);
-//    GeometricField<GradType, fvPatchField, volMesh> vf
-//         = fvc::reconstruct(ssf*mesh.magSf());
-//    vf.correctBoundaryConditions();
-////    grad = vpi.interpolate(vf);
-////    ssf.write();
-////    Info << "vf boundary = " << vf.boundaryField() << endl;
-//    vpi.interpolateBoundaryField(vf, grad);
+    // Apply coupled boundary conditions to invTensor and to grad
+    applyCoupledBCs(grad, mesh);
+    applyCoupledBCs(invTensor, mesh);
 
-//    const pointConstraints& pcs = pointConstraints::New(grad.mesh());
-//    pcs.constrain(grad, false);
-    
+    // Calculate the gradient on the points
+    grad = inv(invTensor) & grad;
+
     return treconField;
 }
 
@@ -177,6 +176,110 @@ faceToPointReconstruct
          tf(fvc::faceToPointReconstruct(tssf.ref()));
     tssf.clear();
     return tf;
+}
+
+
+template<class Type>
+void applyCoupledBCs
+(
+    GeometricField<Type, pointPatchField, pointMesh>& pf,
+    const fvMesh& mesh
+)
+{
+    // Apply boundary conditions to pf
+    typename GeometricField<Type, pointPatchField, pointMesh>::
+        Internal& pfi = pf.ref();
+
+    pointConstraints::syncUntransformedData(mesh, pfi, plusEqOp<Type>());
+    addSeparated(pf);
+    pushUntransformedData(pf, mesh);
+}
+
+
+template<class Type>
+void addSeparated(GeometricField<Type, pointPatchField, pointMesh>& pf)
+{
+    typename GeometricField<Type, pointPatchField, pointMesh>::
+        Internal& pfi = pf.ref();
+
+    typename GeometricField<Type, pointPatchField, pointMesh>::
+        Boundary& pfbf = pf.boundaryFieldRef();
+
+    forAll(pfbf, patchi)
+    {
+        if (pfbf[patchi].coupled())
+        {
+            refCast<coupledPointPatchField<Type>>
+                (pfbf[patchi]).initSwapAddSeparated
+                (
+                    Pstream::nonBlocking,
+                    pfi
+                );
+        }
+    }
+
+    // Block for any outstanding requests
+    Pstream::waitRequests();
+
+    forAll(pfbf, patchi)
+    {
+        if (pfbf[patchi].coupled())
+        {
+            refCast<coupledPointPatchField<Type>>
+                (pfbf[patchi]).swapAddSeparated
+                (
+                    Pstream::nonBlocking,
+                    pfi
+                );
+        }
+    }
+}
+
+
+template<class Type>
+void pushUntransformedData
+(
+    GeometricField<Type, pointPatchField, pointMesh>& pf,
+    const fvMesh& mesh
+)
+{
+    typename GeometricField<Type, pointPatchField, pointMesh>::
+        Internal& pointData = pf.ref();
+
+    // Transfer onto coupled patch
+    const globalMeshData& gmd = mesh.globalData();
+    const indirectPrimitivePatch& cpp = gmd.coupledPatch();
+    const labelList& meshPoints = cpp.meshPoints();
+
+    const mapDistribute& slavesMap = gmd.globalCoPointSlavesMap();
+    const labelListList& slaves = gmd.globalCoPointSlaves();
+
+    List<Type> elems(slavesMap.constructSize());
+    forAll(meshPoints, i)
+    {
+        elems[i] = pointData[meshPoints[i]];
+    }
+
+    // Combine master data with slave data
+    forAll(slaves, i)
+    {
+        const labelList& slavePoints = slaves[i];
+
+        // Copy master data to slave slots
+        forAll(slavePoints, j)
+        {
+            elems[slavePoints[j]] = elems[i];
+        }
+    }
+
+    // Push slave-slot data back to slaves
+    slavesMap.reverseDistribute(elems.size(), elems, false);
+
+    // Extract back onto mesh
+    forAll(meshPoints, i)
+    {
+        pointData[meshPoints[i]] = elems[i];
+    }
 }
 
 

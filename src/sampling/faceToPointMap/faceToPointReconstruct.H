@@ -71,6 +71,26 @@ namespace fvc
     (
         const tmp<GeometricField<Type, fvsPatchField, surfaceMesh> >&
     );
+    
+    // Apply coupled boundary conditions to point fields
+    template<class Type>
+    void applyCoupledBCs
+    (
+        GeometricField<Type, pointPatchField, pointMesh>& pf,
+        const fvMesh& mesh
+    );
+    
+    // Helper functions for applying coupled BCs to point fields
+    // (taked from volPointInterpolate.C)
+    template<class Type>
+    void addSeparated(GeometricField<Type, pointPatchField, pointMesh>& pf);
+    
+    template<class Type>
+    void pushUntransformedData
+    (
+        GeometricField<Type, pointPatchField, pointMesh>& pf,
+        const fvMesh& mesh
+    );
 }
 
 
