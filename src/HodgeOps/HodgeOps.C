@@ -36,6 +36,36 @@ Foam::HodgeOps::HodgeOps(const fvMesh& mesh__)
 {
     surfaceScalarField dc = mesh_.deltaCoeffs();
     const_cast<surfaceScalarField&>(mesh_.nonOrthDeltaCoeffs()) = dc;
+    orthogonalBoundaries(mesh__);
+}
+
+// * * * * * * * * * * * * * * Member functions  * * * * * * * * * * * * * * //
+
+void Foam::HodgeOps::orthogonalBoundaries(const fvMesh& mesh__)
+{
+    Foam::Info << "Making the boundary faces orthogonal" << Foam::endl;
+
+    forAll(mesh__.boundary(), patchi)
+    {
+        const fvPatch& pat = mesh__.boundary()[patchi];
+        // only move centres of un-coupled boundary faces
+        if (!pat.coupled())
+        {
+            // loop through and move all of the faces
+            for(label facei = pat.start(); facei <pat.start()+pat.size();facei++)
+            {
+                label own = mesh__.faceOwner()[facei];
+                const vector& C = mesh__.C()[own];
+                const vector& Cf = mesh__.faceCentres()[facei];
+                const vector Sfhat = mesh__.faceAreas()[facei]
+                                      /mag(mesh__.faceAreas()[facei]);
+                const vector fCnew = C + ((Cf - C) & Sfhat)*Sfhat;
+
+                const_cast<vectorField&>(mesh__.faceCentres())[facei] = fCnew;
+            }
+        }
+    }
 }
 
 // ************************************************************************* //
+
