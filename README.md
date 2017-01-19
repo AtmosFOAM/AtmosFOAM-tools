@@ -1,4 +1,7 @@
-# AtmosFOAM-tools is a repository  which contains generic libraries and utilities for
+# AtmosFOAM-tools
+[![DOI](https://zenodo.org/badge/64257768.svg)](https://zenodo.org/badge/latestdoi/64257768)
+
+A repository  which contains generic libraries and utilities for
     https://github.com/hertzsprung/AtmosFOAM
     and
     https://github.com/pbrowne/AMMM

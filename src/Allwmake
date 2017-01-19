@@ -11,6 +11,7 @@ makeType=${1:-libso}
     exit 1
 }
 
+wmake $makeType OpenFOAM
 wmake $makeType finiteVolume
 wmake $makeType HodgeOps
 wmake $makeType sampling
