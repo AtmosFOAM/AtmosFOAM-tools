@@ -1,3 +1,4 @@
 vorticityF/vorticityF.C
+vorticity2D/vorticity2D.C
 
 LIB = $(FOAM_USER_LIBBIN)/libAtmosFoamFieldFunctionObjects

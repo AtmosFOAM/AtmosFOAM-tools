@@ -76,6 +76,26 @@ inline void setInternalAndBoundaryValues
 }
 
 
+// Set values of f1 to those of f2
+template<class Type, template<class> class PatchField, class GeoMesh>
+inline void setInternalAndBoundaryValues
+(
+    GeometricField<Type, PatchField, GeoMesh>& f1,
+    const tmp<GeometricField<Type, PatchField, GeoMesh> >& tf2
+)
+{
+    const GeometricField<Type, PatchField, GeoMesh>& f2 = tf2();
+    setInternalValues(f1, f2);
+
+    // Also set all the boundary values
+    for(label patchI = 0; patchI < f1.boundaryField().size(); patchI++)
+    {
+        f1.boundaryFieldRef()[patchI] == f2.boundaryField()[patchI];
+    }
+    tf2.clear();
+}
+
+
 // Set values of f1 to  f2
 template<class Type, template<class> class PatchField, class GeoMesh>
 inline void setInternalValues

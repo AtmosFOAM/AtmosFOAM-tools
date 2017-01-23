@@ -31,6 +31,7 @@ License
 //#include "volPointInterpolation.H"
 //#include "volFields.H"
 #include "pointConstraints.H"
+#include "coupledPointPatchField.H"
 //#include "cyclicPointPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

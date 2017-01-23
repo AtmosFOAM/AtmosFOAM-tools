@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::vorticityF
+    Foam::functionObjects::vorticity2D
 
 Group
     grpFieldFunctionObjects
@@ -36,12 +36,12 @@ See also
     Foam::functionObjects::fvMeshFunctionObject
 
 SourceFiles
-    vorticityF.C
+    vorticity2D.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_vorticityF_H
-#define functionObjects_vorticityF_H
+#ifndef functionObjects_vorticity2D_H
+#define functionObjects_vorticity2D_H
 
 #include "fieldExpression.H"
 
@@ -53,13 +53,17 @@ namespace functionObjects
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class vorticityF Declaration
+                          Class vorticity2D Declaration
 \*---------------------------------------------------------------------------*/
 
-class vorticityF
+class vorticity2D
 :
     public fieldExpression
 {
+    // Private data
+        //- Direction
+        const int dir_;
+
     // Private Member Functions
 
         //- Calculate the vorticity field and return true if successful
@@ -69,13 +73,13 @@ class vorticityF
 public:
 
     //- Runtime type information
-    TypeName("vorticityF");
+    TypeName("vorticity2D");
 
 
     // Constructors
 
         //- Construct from Time and dictionary
-        vorticityF
+        vorticity2D
         (
             const word& name,
             const Time& runTime,
@@ -84,7 +88,7 @@ public:
 
 
     //- Destructor
-    virtual ~vorticityF();
+    virtual ~vorticity2D();
 };
 
 
