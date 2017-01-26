@@ -111,7 +111,7 @@ public:
         dimensionedScalar& max() { return max_;}
 
         // Return a volScalarField for the Gaussian distribution
-        tmp<volScalarField> field(const fvMesh& mesh);
+        tmp<volScalarField> field(const fvMesh& mesh) const;
 
     // Member Operators
 

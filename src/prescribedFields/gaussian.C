@@ -66,7 +66,7 @@ Foam::gaussian::~gaussian()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::volScalarField> Foam::gaussian::field(const fvMesh& mesh)
+Foam::tmp<Foam::volScalarField> Foam::gaussian::field(const fvMesh& mesh) const
 {
     tmp<volScalarField> tvf
     (

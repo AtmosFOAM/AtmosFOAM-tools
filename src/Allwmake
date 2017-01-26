@@ -16,3 +16,4 @@ wmake $makeType finiteVolume
 wmake $makeType HodgeOps
 wmake $makeType sampling
 wmake $makeType geometry
+wmake $makeType prescribedFields
