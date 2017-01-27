@@ -98,11 +98,7 @@ int main(int argc, char *argv[])
     // Initialise tracer to the background value
     volScalarField T
     (
-        IOobject
-        (
-            value.name(), runTime.timeName(), mesh,
-            IOobject::READ_IF_PRESENT
-        ),
+        IOobject(value.name(), runTime.timeName(), mesh),
         mesh,
         value
     );
