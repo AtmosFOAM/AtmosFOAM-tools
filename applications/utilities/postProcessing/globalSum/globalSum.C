@@ -168,6 +168,47 @@ int main(int argc, char *argv[])
             os << runTime.timeName() << ' ' << l1 << ' ' << l2 << ' ' << li
                << ' ' << l0 << ' ' << variance << ' ' << min << ' ' << max << endl;
         }
+        else if (header.headerClassName() == "surfaceScalarField")
+        {
+            const surfaceScalarField f(header, mesh);
+            
+            scalar Atot = 0;
+            scalar l1 = 0;
+            scalar l2 = 0;
+            scalar li = 0;
+            scalar l0 = 0;
+            scalar min = 0.0;
+            scalar max = 0.0;
+            
+            forAll(f, faceI)
+            {
+                scalar fi = f[faceI];
+                scalar Ai = mesh.magSf()[faceI];
+                Atot += Ai;
+                l1 += mag(fi)*Ai;
+                l2 += sqr(fi)*Ai;
+                if (mag(fi) > li) li = mag(fi);
+                l0 += fi*Ai;
+                if (fi > max) max = fi;
+                if (fi < min) min = fi;
+            }
+            l1 /= Atot;
+            l2 = Foam::sqrt(l2/Atot);
+            l0 /= Atot;
+
+            scalar variance = 0;
+            forAll(f, faceI)
+            {
+                scalar fi = f[faceI];
+                scalar Ai = mesh.magSf()[faceI];
+                variance += pow(fi - l0, 2) * Ai;
+            }
+
+            variance /= Atot;
+            
+            os << runTime.timeName() << ' ' << l1 << ' ' << l2 << ' ' << li
+               << ' ' << l0 << ' ' << variance << ' ' << min << ' ' << max << endl;
+        }
         else
         {
             FatalErrorIn("globalSum") << "Field type "
