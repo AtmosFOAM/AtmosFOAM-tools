@@ -104,6 +104,17 @@ inline Foam::tmp<Foam::surfaceScalarField> Foam::HodgeOps::ddirToFluxOffDiag
     // Take dot product in Sf direction and remove central delta component
     U = uf & (mesh_.Sf() - delta()*Hdiag());
     
+    // Remove boundary components
+    forAll(mesh_.boundary(), patchi)
+    {
+        const fvPatch& pat = mesh_.boundary()[patchi];
+        // only remove un-coupled boundary components
+        if (!pat.coupled())
+        {
+            tU.ref().boundaryFieldRef()[patchi] == 0;
+        }
+    }
+
     return tU;
 }
 
@@ -135,6 +146,17 @@ inline Foam::tmp<Foam::surfaceScalarField> Foam::HodgeOps::ddirToFluxCorr
     
     // Remove uncorrected components
     tU.ref() -= V*mesh_.magSf()/mag(delta());
+    
+    // Remove boundary components
+    forAll(mesh_.boundary(), patchi)
+    {
+        const fvPatch& pat = mesh_.boundary()[patchi];
+        // only remove un-coupled boundary components
+        if (!pat.coupled())
+        {
+            tU.ref().boundaryFieldRef()[patchi] == 0;
+        }
+    }
     
     return tU;
 }

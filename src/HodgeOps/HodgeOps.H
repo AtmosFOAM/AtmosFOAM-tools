@@ -101,7 +101,7 @@ public:
          // Non-orthogonal corrections
 
             //- Make the boundary faces orthogonal (done on construction)
-            void orthogonalBoundaries(const fvMesh& mesh);
+            const fvMesh&  orthogonalBoundaries(const fvMesh& mesh);
 
             //- transform from a field integrated along d to a flux
             inline tmp<surfaceScalarField> ddirToFlux

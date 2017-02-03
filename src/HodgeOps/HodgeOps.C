@@ -29,19 +29,18 @@ License
 
 Foam::HodgeOps::HodgeOps(const fvMesh& mesh__)
 :
-    mesh_(mesh__),
+    mesh_(orthogonalBoundaries(mesh__)),
     delta_(mesh_.delta()),
     magd_(mag(delta_)),
     Hdiag_((mesh_.Sf() & delta_)/sqr(magd_))
 {
     surfaceScalarField dc = mesh_.deltaCoeffs();
     const_cast<surfaceScalarField&>(mesh_.nonOrthDeltaCoeffs()) = dc;
-    orthogonalBoundaries(mesh__);
 }
 
 // * * * * * * * * * * * * * * Member functions  * * * * * * * * * * * * * * //
 
-void Foam::HodgeOps::orthogonalBoundaries(const fvMesh& mesh__)
+const Foam::fvMesh& Foam::HodgeOps::orthogonalBoundaries(const fvMesh& mesh__)
 {
     Foam::Info << "Making the boundary faces orthogonal" << Foam::endl;
 
@@ -65,6 +64,8 @@ void Foam::HodgeOps::orthogonalBoundaries(const fvMesh& mesh__)
             }
         }
     }
+
+    return mesh__;
 }
 
 // ************************************************************************* //
