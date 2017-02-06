@@ -81,6 +81,7 @@ int main(int argc, char *argv[])
         )
     );
     const dimensionedVector U0(initDict.lookup("U0"));
+    const Switch setReference(initDict.lookup("setStreamFunctionReference"));
 
     forAll(timeDirs, timeI)
     {
@@ -116,17 +117,29 @@ int main(int argc, char *argv[])
         
         // Set the streamfunction for the background uniform flow
         const dimensionedVector velocityPerp = meshNormal ^ U0;
-        streamFunction == magSqr(U0)/magSqr(velocityPerp)
-                         *(mesh.C() & velocityPerp);
+        if (magSqr(velocityPerp).value() > SMALL)
+        {
+            streamFunction == magSqr(U0)/magSqr(velocityPerp)
+                             *(mesh.C() & velocityPerp);
+        }
 
         // Invert the streamfunction to find the vorticity
         bool converged = false;
-        for(label it = 0; it < 100 && !converged; it++)
+        for(label it = 0; it < 10 && !converged; it++)
         {
             fvScalarMatrix streamFuncEqn
             (
-                fvm::laplacian(streamFunction) == vorticity
+                fvm::laplacian(streamFunction) == -vorticity
             );
+            if (setReference)
+            {
+                streamFuncEqn.setReference(0,0);
+                // Ensure that the vorticity sums to zero
+                dimensionedScalar vorticityMean
+                    = fvc::domainIntegrate(vorticity)/gSum(mesh.V());
+                Info << "Subtracting vorticityMean = " << vorticityMean << endl;
+                streamFuncEqn -= vorticityMean;
+            }
             solverPerformance sp = streamFuncEqn.solve();
             converged = sp.nIterations() <= 0;
         }
