@@ -90,6 +90,8 @@ scalar maxSsf = 0;
             }
         }
 
+        if (plotFace) plotFace = plotZeroValuePolys || mag(ssf[faci]) > 1e-14;
+
         if (plotFace)
         {
             // Make face f2 which goes back to the beginning again
