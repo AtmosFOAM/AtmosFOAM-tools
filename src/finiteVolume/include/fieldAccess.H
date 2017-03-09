@@ -42,6 +42,21 @@ namespace Foam
 // * * * * * * * * * * * * * * * Global functions  * * * * * * * * * * * * * //
 
 // Acess element from within surfaceField with boundary values are put at the end
+template<class Type>
+inline const Type& fieldAccess
+(
+    const GeometricField<Type, fvsPatchField, surfaceMesh>& f,
+    const label i
+)
+{
+    if (i < f.size()) return f[i];
+    
+    const polyBoundaryMesh& bmesh = f.mesh().boundaryMesh();
+    const label patchID = bmesh.whichPatch(i);
+    const label patchFace = i - bmesh[patchID].start();
+    
+    return f.boundaryField()[patchID][patchFace];
+}
 
 
 template<class Type>
