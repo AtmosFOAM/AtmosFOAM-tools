@@ -84,12 +84,15 @@ inline Foam::tmp<Foam::surfaceScalarField> Foam::HodgeOps::ddirToFluxOffDiag
     );
     surfaceScalarField& U = tU.ref();
     
-    surfaceVectorField delHat = delta()/mag(delta());
+    surfaceVectorField dhat = delta()/magd();
+    //surfaceScalarField Sfdhat = mesh_.Sf() & dhat;
     
-    volSymmTensorField T(fvc::surfaceSum(sqr(delHat)*mesh_.magSf()));
+    //volTensorField T(fvc::surfaceSum(mesh_.Sf()*dhat));
+    volSymmTensorField T(fvc::surfaceSum(sqr(dhat)*mesh_.magSf()));
     if (mesh_.nSolutionD() != 3)
     {
-        T += sqr(vector(mesh_.solutionD()) - vector(1,1,1))*magSqr(mesh_.C());
+        T = T + sqr(vector(mesh_.solutionD()) - vector(1,1,1))
+                *magSqr(mesh_.C());
     }
     
     surfaceVectorField uf
@@ -97,7 +100,8 @@ inline Foam::tmp<Foam::surfaceScalarField> Foam::HodgeOps::ddirToFluxOffDiag
         fvc::interpolate
         (
             inv(T)
-          & (fvc::surfaceSum(delHat*V*mesh_.magSf()/mag(delta()))), "H"
+//          & (fvc::surfaceSum(V*mesh_.Sf()/magd())), "H"
+          & (fvc::surfaceSum(dhat*V*mesh_.magSf()/magd())), "H"
         )
     );
     
@@ -174,10 +178,16 @@ inline Foam::tmp<Foam::volVectorField> Foam::HodgeOps::reconstructd
             << exit(FatalError);
     }
 
-    volSymmTensorField T(fvc::surfaceSum(sqr(delta())));
+    surfaceVectorField dhat = delta()/magd();
+    //surfaceScalarField Sfdhat = mesh_.Sf() & dhat;
+
+    //volTensorField T(fvc::surfaceSum(mesh_.Sf()*dhat));
+    volSymmTensorField T(fvc::surfaceSum(sqr(dhat)*mesh_.magSf()));
     if (mesh_.nSolutionD() != 3)
     {
-        T += sqr(vector(mesh_.solutionD()) - vector(1,1,1))*magSqr(mesh_.C());
+        T = T
+          + sqr(vector(mesh_.solutionD()) - vector(1,1,1))
+               *magSqr(mesh_.C());
     }
 
     tmp<volVectorField> tu
@@ -190,7 +200,7 @@ inline Foam::tmp<Foam::volVectorField> Foam::HodgeOps::reconstructd
                 V.instance(),
                 V.db()
             ),
-            inv(T) & (fvc::surfaceSum(delta()*V))
+            inv(T) & (fvc::surfaceSum(dhat*V*mesh_.magSf()/magd()))
         )
     );
     
