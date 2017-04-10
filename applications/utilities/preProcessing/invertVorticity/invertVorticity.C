@@ -100,13 +100,6 @@ int main(int argc, char *argv[])
             mesh
         );
 
-        Info << "Reading in velocity field on faces, Uf" << endl;
-        surfaceVectorField Uf
-        (
-            IOobject("Uf", runTime.timeName(), mesh, IOobject::MUST_READ),
-            mesh
-        );
-        
         Info << "Creating the streamFunction" << endl;
         volScalarField streamFunction
         (
@@ -144,11 +137,24 @@ int main(int argc, char *argv[])
             converged = sp.nIterations() <= 0;
         }
 
-        // Set the velocity from the streamfunction
-        Uf = linearInterpolate(fvc::curl(streamFunction*meshNormal));
-
-        Uf.write();
         streamFunction.write();
+
+        // Set the velocity from the streamfunction
+        volVectorField U
+        (
+            IOobject("U", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
+            fvc::curl(streamFunction*meshNormal)
+        );
+        U == fvc::curl(streamFunction*meshNormal);
+        U.write();
+
+        surfaceVectorField Uf
+        (
+            IOobject("Uf", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
+            linearInterpolate(U)
+        );
+        Uf = linearInterpolate(U);
+        Uf.write();
     }
     
     Info<< "End\n" << endl;
