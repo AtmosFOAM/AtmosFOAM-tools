@@ -114,6 +114,38 @@ inline void setInternalValues
     f1.ref().Field<Type>::operator=(f2);
 }
 
+
+// Set values of f1 to  f2
+template<class Type, template<class> class PatchField, class GeoMesh>
+inline void setInternalValues
+(
+    GeometricField<Type, PatchField, GeoMesh>& f1,
+    const DimensionedField<Type, GeoMesh>& f2
+)
+{
+    if (f1.size() != f2.size())
+    {
+        FatalErrorIn("setInternalValues") << "Cannot set values of field "
+            << f1.name() << " with size " << f1.size() << " to values of field"
+            << " of size " << f2.size() << abort(FatalError);
+    }
+    
+    f1.ref().Field<Type>::operator=(f2);
+}
+
+// Set values of f1 to  f2
+template<class Type, template<class> class PatchField, class GeoMesh>
+inline void setInternalValues
+(
+    GeometricField<Type, PatchField, GeoMesh>& f1,
+    const tmp<DimensionedField<Type, GeoMesh> >& tf2
+)
+{
+    const DimensionedField<Type, GeoMesh>& f2 = tf2();
+    setInternalValues(f1, f2);
+    tf2.clear();
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

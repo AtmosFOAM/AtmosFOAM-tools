@@ -213,7 +213,7 @@ void addSeparated(GeometricField<Type, pointPatchField, pointMesh>& pf)
             refCast<coupledPointPatchField<Type>>
                 (pfbf[patchi]).initSwapAddSeparated
                 (
-                    Pstream::nonBlocking,
+                    Pstream::commsTypes::nonBlocking,
                     pfi
                 );
         }
@@ -229,7 +229,7 @@ void addSeparated(GeometricField<Type, pointPatchField, pointMesh>& pf)
             refCast<coupledPointPatchField<Type>>
                 (pfbf[patchi]).swapAddSeparated
                 (
-                    Pstream::nonBlocking,
+                    Pstream::commsTypes::nonBlocking,
                     pfi
                 );
         }
