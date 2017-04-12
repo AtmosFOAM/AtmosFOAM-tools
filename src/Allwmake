@@ -17,3 +17,4 @@ wmake $makeType HodgeOps
 wmake $makeType sampling
 wmake $makeType geometry
 wmake $makeType morePrescribedFields
+wmake $makeType functionObjects/field
