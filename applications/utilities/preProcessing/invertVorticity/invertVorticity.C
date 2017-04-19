@@ -100,14 +100,14 @@ int main(int argc, char *argv[])
             mesh
         );
 
-        Info << "Creating the streamFunction" << endl;
+        Info << "Reading the streamFunction" << endl;
         volScalarField streamFunction
         (
             IOobject("streamFunction", runTime.timeName(), mesh,
                      IOobject::MUST_READ),
             mesh
         );
-        
+                
         // Set the streamfunction for the background uniform flow
         const dimensionedVector velocityPerp = meshNormal ^ U0;
         if (magSqr(velocityPerp).value() > SMALL)
@@ -146,15 +146,49 @@ int main(int argc, char *argv[])
             fvc::curl(streamFunction*meshNormal)
         );
         U == fvc::curl(streamFunction*meshNormal);
-        U.write();
-
         surfaceVectorField Uf
         (
             IOobject("Uf", runTime.timeName(), mesh, IOobject::READ_IF_PRESENT),
             linearInterpolate(U)
         );
         Uf = linearInterpolate(U);
+        
+        U.write();
         Uf.write();
+        
+//        Info << "Projecting the velocity field to be divergence free" << endl;
+//        surfaceScalarField phiv("phiv", Uf & mesh.Sf());
+//        
+//        Info << "Reading the velocity potential" << endl;
+//        volScalarField velPot
+//        (
+//            IOobject("velPot", runTime.timeName(), mesh,
+//                     IOobject::MUST_READ),
+//            mesh
+//        );
+
+//        converged = false;
+//        for(label it = 0; it < 10 && !converged; it++)
+//        {
+//            fvScalarMatrix velPotEqn
+//            (
+//                fvc::div(phiv) - fvm::laplacian(velPot)
+//            );
+//            if (setReference)
+//            {
+//                velPotEqn.setReference(0,0);
+//            }
+//            solverPerformance sp = velPotEqn.solve();
+//            converged = sp.nIterations() <= 0;
+//            phiv += velPotEqn.flux();
+//        }
+//        
+//        Uf += (phiv - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
+//        Uf.write();
+//        velPot.write();
+//        phiv.write();
+//        volScalarField divU("divU", fvc::div(phiv));
+//        divU.write();
     }
     
     Info<< "End\n" << endl;
