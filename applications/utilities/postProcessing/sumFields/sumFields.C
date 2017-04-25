@@ -142,13 +142,13 @@ int main(int argc, char *argv[])
 
         if (mag(scales[1]) > SMALL)
         {
-            vfIn = volScalarField
+            volScalarField vfOther = volScalarField
             (
                 IOobject(fileNames[1],fileTime[1],mesh,IOobject::MUST_READ),
                 mesh
             );
 
-            vfOut += scales[1] * pow(vfIn, powers[1]);
+            vfOut += scales[1] * pow(vfOther, powers[1]);
         }
 
         runTime.setTime(timeOut, 0);
@@ -192,13 +192,13 @@ int main(int argc, char *argv[])
 
         if (mag(scales[1]) > SMALL)
         {
-            vfIn = volVectorField
+            volVectorField vfOther = volVectorField
             (
                 IOobject(fileNames[1],fileTime[1],mesh,IOobject::MUST_READ),
                 mesh
             );
 
-            vfOut += scales[1]*vfIn;
+            vfOut += scales[1]*vfOther;
         }
 
         runTime.setTime(timeOut, 0);
@@ -218,13 +218,13 @@ int main(int argc, char *argv[])
 
         if (mag(scales[1]) > SMALL)
         {
-            sfIn = surfaceScalarField
+            surfaceScalarField sfOther = surfaceScalarField
             (
                 IOobject(fileNames[1],fileTime[1],mesh,IOobject::MUST_READ),
                 mesh
             );
 
-            sfOut += scales[1] * pow(sfIn, powers[1]);
+            sfOut += scales[1] * pow(sfOther, powers[1]);
         }
 
         runTime.setTime(timeOut, 0);
