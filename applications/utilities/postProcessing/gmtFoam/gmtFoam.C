@@ -355,6 +355,13 @@ int main(int argc, char *argv[])
                     }
                     else if
                     (
+                     fieldsToPlot[ifield].plotType() == FieldToPlot::RAW_BOUNDARY_VALUES
+                    )
+                    {
+#                       include "rawSurfaceBoundaryValues.H"
+                    }
+                    else if
+                    (
                      fieldsToPlot[ifield].plotType() == FieldToPlot::RAW_FLUXES
                     )
                     {
