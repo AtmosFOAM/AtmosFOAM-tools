@@ -1,0 +1,17 @@
+dist: trusty
+sudo: required
+language: cpp
+
+env:
+  - ATMOSFOAM_TOOLS_SRC=$TRAVIS_BUILD_DIR
+
+before_install:
+  - sudo sh -c "wget -O - http://dl.openfoam.org/gpg.key | apt-key add -"
+  - sudo add-apt-repository "http://dl.openfoam.org/ubuntu dev" -y
+  - sudo apt-get -qq update
+  - sudo apt-get install openfoam-dev -y
+
+before_script:
+  - source /opt/openfoam-dev/etc/bashrc
+
+script: ./Allwmake
