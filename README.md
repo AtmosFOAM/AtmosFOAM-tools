@@ -1,5 +1,6 @@
 # AtmosFOAM-tools
 [![DOI](https://zenodo.org/badge/64257768.svg)](https://zenodo.org/badge/latestdoi/64257768)
+[![Build Status](https://travis-ci.org/AtmosFOAM/AtmosFOAM-tools.svg?branch=master)](https://travis-ci.org/AtmosFOAM/AtmosFOAM-tools)
 
 A repository  which contains generic libraries and utilities for
     https://github.com/hertzsprung/AtmosFOAM
