@@ -73,6 +73,11 @@ class gaussian
         //- Maximum value of the Gaussian (at the centre)
         dimensionedScalar max_;
 
+        //- Location of the periodic minimum of the domain
+        point periodMin_;
+
+        //- Location of the periodic maximum of the domain
+        point periodMax_;
 
 public:
 
@@ -86,11 +91,18 @@ public:
         (
             const dimensioned<point>& centre__,
             const dimensionedScalar radius__,
-            const dimensionedScalar max__
+            const dimensionedScalar max__,
+            const point& periodMin__ = point::zero,
+            const point& periodMax__ = point::zero
         );
 
         //- Construct from Istream
-        gaussian(Istream&);
+        gaussian
+        (
+            Istream&,
+            const point& periodMin__ = point::zero,
+            const point& periodMax__ = point::zero
+        );
 
         //- Construct as copy
         gaussian(const gaussian&);
@@ -109,6 +121,10 @@ public:
         dimensionedScalar& radius() { return radius_;}
         const dimensionedScalar& max() const { return max_;}
         dimensionedScalar& max() { return max_;}
+        const point& periodMin() const { return periodMin_;}
+        point& periodMin() { return periodMin_;}
+        const point& periodMax() const { return periodMax_;}
+        point& periodMax() { return periodMax_;}
 
         // Return a volScalarField for the Gaussian distribution
         tmp<volScalarField> field(const fvMesh& mesh) const;

@@ -29,11 +29,18 @@ License
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::gaussian::gaussian(Istream& is)
+Foam::gaussian::gaussian
+(
+    Istream& is,
+    const point& periodMin__,
+    const point& periodMax__
+)
 :
     centre_(is),
     radius_(is),
-    max_(is)
+    max_(is),
+    periodMin_(periodMin__),
+    periodMax_(periodMax__)
 {
     // Check state of Istream
     is.check("Foam::gaussian::gaussian(Foam::Istream&)");
@@ -44,7 +51,7 @@ Foam::gaussian::gaussian(Istream& is)
 
 Foam::Istream& Foam::operator>>(Istream& is, gaussian& g)
 {
-    is >> g.centre_ >> g.radius_ >> g.max_;
+    is >> g.centre_ >> g.radius_ >> g.max_ >> g.periodMin_ >> g.periodMax_;
     // Check state of Istream
     is.check
     (
@@ -57,7 +64,8 @@ Foam::Istream& Foam::operator>>(Istream& is, gaussian& g)
 
 Foam::Ostream& Foam::operator<<(Ostream& os, const gaussian& g)
 {
-    os << g.centre_ << nl << g.radius_ << nl << g.max_;
+    os << g.centre_ << nl << g.radius_ << nl << g.max_ << nl << g.periodMin_
+       << nl << g.periodMax_;
     // Check state of Ostream
     os.check
     (

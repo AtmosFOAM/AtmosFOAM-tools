@@ -32,7 +32,9 @@ Foam::gaussian::gaussian()
 :
     centre_(dimensioned<point>("centre", dimLength, point::zero)),
     radius_(dimensionedScalar("radius", dimLength, scalar(0))),
-    max_(dimensionedScalar("T", dimless, scalar(0)))
+    max_(dimensionedScalar("T", dimless, scalar(0))),
+    periodMin_(point::zero),
+    periodMax_(point::zero)
 {}
 
 
@@ -40,12 +42,16 @@ Foam::gaussian::gaussian
 (
     const dimensioned<point>& centre__,
     const dimensionedScalar radius__,
-    const dimensionedScalar max__
+    const dimensionedScalar max__,
+    const point& periodMin__,
+    const point& periodMax__
 )
 :
     centre_(centre__),
     radius_(radius__),
-    max_(max__)
+    max_(max__),
+    periodMin_(periodMin__),
+    periodMax_(periodMax__)
 {}
 
 
@@ -53,7 +59,9 @@ Foam::gaussian::gaussian(const gaussian& g)
 :
     centre_(g.centre()),
     radius_(g.radius()),
-    max_(g.max())
+    max_(g.max()),
+    periodMin_(g.periodMin()),
+    periodMax_(g.periodMax())
 {}
 
 
@@ -79,7 +87,29 @@ Foam::tmp<Foam::volScalarField> Foam::gaussian::field(const fvMesh& mesh) const
     );
     volScalarField& vf = tvf.ref();
     
-    vf = max_*exp(-0.5*magSqr(mesh.C() - centre_)/sqr(radius_));
+    volVectorField dist = mesh.C() - centre_;
+    
+    vector period = periodMax_ - periodMin_;
+    for(label dim = 0; dim < 3; dim++)
+    {
+        if (period[dim] < VSMALL) period[dim] = VGREAT;
+    }
+    forAll(dist, cellI)
+    {
+        for(label dim = 0; dim < 3; dim++)
+        {
+            if (dist[cellI][dim] > 0.5*period[dim])
+            {
+                dist[cellI][dim] -= period[dim];
+            }
+            else if (dist[cellI][dim] < -0.5*period[dim])
+            {
+                dist[cellI][dim] += period[dim];
+            }
+        }
+    }
+    
+    vf = max_*exp(-0.5*magSqr(dist)/sqr(radius_));
     
     return tvf;
 }
