@@ -26,7 +26,7 @@ Application
     setGaussians.C
 
 Description
-    Initial a given volScalarField to be the sum of a set of Gaussians with 
+    Initial a given volScalarField to be the sum of a set of Gaussians with
     different maxima, radius and centres
 
 \*---------------------------------------------------------------------------*/
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
             dictName, mesh.time().system(), mesh, IOobject::MUST_READ
         )
     );
-    
+
     // Read in background value
     dimensionedScalar value
     (
@@ -98,7 +98,11 @@ int main(int argc, char *argv[])
     // Initialise tracer to the background value
     volScalarField T
     (
-        IOobject(value.name(), runTime.timeName(), mesh),
+        IOobject
+        (
+            value.name(), runTime.timeName(), mesh,
+            IOobject::READ_IF_PRESENT
+        ),
         mesh,
         value
     );
@@ -116,15 +120,16 @@ int main(int argc, char *argv[])
                 << gaussians[ig].max().dimensions() << exit(FatalError);
         }
     }
-    
+
     // Add fields for all of the Gaussian distributions
+    T == value;
     forAll(gaussians, ig)
     {
         T += gaussians[ig].field(mesh);
     }
-    
+
     T.write();
-    
+
     Info<< "End\n" << endl;
 
     return(0);
