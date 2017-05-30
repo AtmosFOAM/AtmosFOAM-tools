@@ -93,3 +93,10 @@ polyMesh
 *.lot
 *.ttt
 
+debian/build
+debian/changelog
+debian/debhelper-build-stamp
+debian/files
+debian/atmosfoam-tools.debhelper.log
+debian/atmosfoam-tools.substvars
+debian/atmosfoam-tools
