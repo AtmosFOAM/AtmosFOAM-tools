@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+SHELL := /bin/bash
+INSTALL := install -D
+INSTALL_PROGRAM := $(INSTALL)
+INSTALL_DATA := $(INSTALL) -m 644
+PREFIX := /usr
+exec_prefix := $(PREFIX)
+bindir := $(exec_prefix)/bin
+libdir := $(exec_prefix)/lib
+DESTDIR := debian/travis-cpp
+
+export FOAM_BASHRC = /opt/openfoam-dev/etc/bashrc
+export DH_ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+export TRAVISFOAM_DIR = $(shell pwd)
+
+FOAM_USER_APPBIN := $(DH_ROOT_DIR)/build/bin
+
+%:
+	debian/override_dh.sh dh $@
+
+override_dh_auto_clean:
+	debian/override_dh_auto_clean.sh
+	rm -rf $(DH_ROOT_DIR)/build/bin
+	rm -rf $(DH_ROOT_DIR)/build/lib
+
+override_dh_auto_build:
+	debian/override_dh_auto_build.sh
+
+override_dh_auto_test:
+	debian/override_dh.sh $(FOAM_USER_APPBIN)/testTravisFOAM --use-colour yes
+
+override_dh_auto_install:
+	$(INSTALL_PROGRAM) $(FOAM_USER_APPBIN)/travisFoamApp $(DESTDIR)$(bindir)/travisFoamApp
+	$(INSTALL_DATA) $(FOAM_USER_LIBBIN)/libTravisFOAM.so $(DESTDIR)$(libdir)/libTravisFoam.so
+
