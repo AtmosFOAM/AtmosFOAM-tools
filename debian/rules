@@ -37,5 +37,7 @@ override_dh_auto_install:
 	$(INSTALL_PROGRAM) -D $(FOAM_USER_APPBIN)/* $(DESTDIR)$(bindir)
 	$(INSTALL_PROGRAM) -D $(FOAM_USER_LIBBIN)/* $(DESTDIR)$(libdir)
 	$(RM) $(DESTDIR)$(bindir)/testAtmosFOAM-tools
-	find gmtUser/* -type f -exec '$(INSTALL_DATA) -D "{}" $(DESTDIR)$(sharedir)/gmtFoam/' ;
+	mkdir -p $(DESTDIR)$(sharedir)/gmtFoam
+	cp -r gmtUser/* $(DESTDIR)$(sharedir)/gmtFoam/
+#	find gmtUser/* -type f -exec '$(INSTALL_DATA) -D "{}" $(DESTDIR)$(sharedir)/gmtFoam/' \;
 	$(INSTALL_PROGRAM) -D debian/gmtFoam.sh $(DESTDIR)/etc/profile.d/gmtFoam.sh
