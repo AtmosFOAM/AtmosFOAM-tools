@@ -11,7 +11,7 @@ DESTDIR := debian/atmosfoam-tools
 
 export FOAM_BASHRC = /opt/openfoam-dev/etc/bashrc
 export DH_ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-export ATMOSFOAM_TOOLS_SRC = $(shell pwd)
+export ATMOSFOAM_TOOLS_SRC = $(shell pwd)/src
 
 FOAM_USER_APPBIN := $(DH_ROOT_DIR)/build/bin
 
