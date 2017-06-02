@@ -2,7 +2,7 @@
 [![DOI](https://zenodo.org/badge/64257768.svg)](https://zenodo.org/badge/latestdoi/64257768)
 [![Build Status](https://travis-ci.org/AtmosFOAM/AtmosFOAM-tools.svg?branch=master)](https://travis-ci.org/AtmosFOAM/AtmosFOAM-tools)
 
-AtmosFOAM-tools contains generic libraries and utilities that support atmospheric simulations with [OpenFOAM](https://openfoam.org/).  These generic tools can be combined with [AtmosFOAM] and [AMMM] repositories.
+AtmosFOAM-tools contains generic libraries and utilities that support atmospheric simulations with [OpenFOAM](https://openfoam.org/).  These generic tools can be combined with [AtmosFOAM](https://github.com/AtmosFOAM/AtmosFOAM) and [AMMM](https://github.com/AtmosFOAM/AMMM) repositories.
     https://github.com/AtmosFOAM/AtmosFOAM
     and
     https://github.com/AtmosFOAM/AMMM
