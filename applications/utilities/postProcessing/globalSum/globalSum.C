@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
             forAll(f, faceI)
             {
                 scalar fi = f[faceI];
-                scalar Ai = mesh.magSf()[faceI];
+                scalar Ai = mesh.delta()()[faceI] & mesh.Sf()[faceI];
                 Atot += Ai;
                 l1 += mag(fi)*Ai;
                 l2 += sqr(fi)*Ai;
