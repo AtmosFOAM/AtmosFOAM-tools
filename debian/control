@@ -11,6 +11,6 @@ Vcs-Browser: https://github.com/AtmosFOAM/AtmosFOAM-tools
 Package: atmosfoam-tools
 Architecture: amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}, openfoam-dev (>= 20170521)
-Recommends: gmt (>= 4.5.11)
+Recommends: gmt (>= 4.5.11), texlive-extra-utils (>= 2013.20140215)
 Description: General tools for OpenFOAM atmospheric simulations
  Includes field postprocessing and visualisation applications.
