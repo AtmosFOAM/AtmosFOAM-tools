@@ -12,11 +12,13 @@ env:
     - SINGULARITY_VERSION=2.3
 
 install:
+  - cd /tmp
   - wget https://github.com/singularityware/singularity/releases/download/$SINGULARITY_VERSION/singularity-$SINGULARITY_VERSION.tar.gz
   - tar -xf singularity-$SINGULARITY_VERSION.tar.gz
   - cd singularity-$SINGULARITY_VERSION
   - ./configure --prefix=/usr/local
   - make
   - sudo make install
+  - cd $TRAVIS_BUILD_DIR
 
 script: ./singularity.sh
