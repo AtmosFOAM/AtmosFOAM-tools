@@ -11,15 +11,9 @@ env:
     - DEBEMAIL=js102@zepler.net
 
 before_install:
-  - sudo sh -c "wget -O - http://dl.openfoam.org/gpg.key | apt-key add -"
-  - sudo add-apt-repository "http://dl.openfoam.org/ubuntu dev" -y
   - sudo apt-get -qq update
 
 install:
-  - sudo apt-get install openfoam-dev devscripts debhelper ruby-dev -y
-  - sudo gem install deb-s3
+  - sudo apt-get install singularity-container -y
 
-before_script:
-  - source /opt/openfoam-dev/etc/bashrc
-
-script: ./dist.sh
+script: ./singularity.sh
