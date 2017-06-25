@@ -20,5 +20,8 @@ install:
   - make
   - sudo make install
   - cd $TRAVIS_BUILD_DIR
+  - ./singularity.bootstrap.sh
+  - sudo apt-get install devscripts debhelper ruby-dev -y
+  - sudo gem install deb-s3
 
-script: ./singularity.sh
+script: ./dist.sh
