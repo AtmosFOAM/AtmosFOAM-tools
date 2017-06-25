@@ -24,4 +24,4 @@ install:
   - sudo apt-get install ruby-dev -y
   - sudo gem install deb-s3
 
-script: ./dist.sh
+script: ./dist.sh trusty
