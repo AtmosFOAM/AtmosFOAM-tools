@@ -25,4 +25,4 @@ install:
   - sudo apt-get install ruby-dev -y
   - sudo gem install deb-s3
 
-script: ./dist.sh trusty && ./dist.sh zesty
+script: ./singularity.dist.sh 14.04 trusty && ./singularity.dist.sh 17.04 zesty
