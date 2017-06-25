@@ -7,4 +7,4 @@ From:ubuntu:14.04
 	sh -c "wget -O - http://dl.openfoam.org/gpg.key | apt-key add -"
 	add-apt-repository "http://dl.openfoam.org/ubuntu dev" -y
 	apt-get -qq update
-	apt-get install git openfoam-dev -y
+	apt-get install devscripts debhelper openfoam-dev -y
