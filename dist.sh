@@ -15,16 +15,17 @@ VERSION=$(date +"%Y%m%d%H%M%S")
 CODENAME=$1
 
 # create a skeletal debian/changelog
-dch --create --package "atmosfoam-tools" --distribution $CODENAME --newversion=$VERSION "Build for $(git rev-parse HEAD)"
+SINGULARITYENV_DEBFULLNAME=$DEBFULLNAME \
+SINGULARITYENV_DEBEMAIL=$DEBEMAIL \
+singularity exec -e $CODENAME.img dch --create --package "atmosfoam-tools" --distribution $CODENAME --newversion=$VERSION "Build for $(git rev-parse HEAD)"
 
 # create an amd64 binary package
 # using the Makefile 'debian/rules'
-
 SINGULARITYENV_DEBFULLNAME=$DEBFULLNAME \
 SINGULARITYENV_DEBEMAIL=$DEBEMAIL \
 SINGULARITYENV_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
 SINGULARITYENV_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-singularity exec -e trusty.img debuild -i -us -uc -b
+singularity exec -e $CODENAME.img debuild -i -us -uc -b
 
 # upload to the debian apt repository located in the
 # Amazon S3 bucket.  deb-s3 expects AWS_ACCESS_KEY_ID and
