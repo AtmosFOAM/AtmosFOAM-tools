@@ -14,6 +14,8 @@ fi
 VERSION=$(date +"%Y%m%d%H%M%S")
 CODENAME=$1
 
+git clean -xfd .
+
 # create a skeletal debian/changelog
 SINGULARITYENV_DEBFULLNAME=$DEBFULLNAME \
 SINGULARITYENV_DEBEMAIL=$DEBEMAIL \
