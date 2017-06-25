@@ -14,8 +14,6 @@ fi
 VERSION=$(date +"%Y%m%d%H%M%S")
 CODENAME=$1
 
-git clean -xfd .
-
 # create a skeletal debian/changelog
 SINGULARITYENV_DEBFULLNAME=$DEBFULLNAME \
 SINGULARITYENV_DEBEMAIL=$DEBEMAIL \
@@ -33,3 +31,5 @@ singularity exec -e $CODENAME.img debuild -i -us -uc -b
 # Amazon S3 bucket.  deb-s3 expects AWS_ACCESS_KEY_ID and
 # AWS_SECRET_ACCESS_KEY environment variables to be set.
 deb-s3 upload --bucket atmosfoam-apt --codename=$CODENAME --component=dev ../atmosfoam-tools_${VERSION}_amd64.deb
+
+git clean -xfd .
