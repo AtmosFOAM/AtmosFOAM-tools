@@ -1,5 +1,5 @@
 Bootstrap:docker
-From:ubuntu:14.04
+From:ubuntu:$VERSION
 
 %post
 	apt-get update -qq

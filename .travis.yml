@@ -20,7 +20,8 @@ install:
   - make
   - sudo make install
   - cd $TRAVIS_BUILD_DIR
-  - ./singularity.bootstrap.sh
+  - ./singularity.bootstrap.sh 14.04 trusty
+  - ./singularity.bootstrap.sh 17.04 zesty
   - sudo apt-get install ruby-dev -y
   - sudo gem install deb-s3
 
