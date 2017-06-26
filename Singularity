@@ -9,5 +9,5 @@ From:ubuntu:$VERSION
 	apt-get -qq update
 
 	DEBIAN_FRONTEND=noninteractive \
-	apt-get install devscripts debhelper openfoam-dev -y --no-install-recommends
+	apt-get install devscripts debhelper openfoam-dev -y
 	rm -rf /var/lib/apt/lists/*
