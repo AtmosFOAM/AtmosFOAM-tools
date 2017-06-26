@@ -7,4 +7,7 @@ From:ubuntu:$VERSION
 	sh -c "wget -O - http://dl.openfoam.org/gpg.key | apt-key add -"
 	add-apt-repository "http://dl.openfoam.org/ubuntu dev" -y
 	apt-get -qq update
-	apt-get install devscripts debhelper openfoam-dev -y
+
+	DEBIAN_FRONTEND=noninteractive \
+	apt-get install devscripts debhelper openfoam-dev -y --no-install-recommends
+	rm -rf /var/lib/apt/lists/*
