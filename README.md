@@ -8,7 +8,7 @@ AtmosFOAM-tools contains generic libraries and utilities that support atmospheri
 
 A binary package is provided for amd64 processors.  To install
 
-    sudo add-apt-repository 'deb http://atmosfoam-apt.s3-website-eu-west-1.amazonaws.com main dev'
+    sudo add-apt-repository "http://atmosfoam-apt.s3-website-eu-west-1.amazonaws.com dev"
     sudo apt-get update
     sudo apt-get install atmosfoam-tools
 

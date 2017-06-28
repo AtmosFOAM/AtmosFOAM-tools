@@ -100,3 +100,4 @@ debian/files
 debian/atmosfoam-tools.debhelper.log
 debian/atmosfoam-tools.substvars
 debian/atmosfoam-tools
+*.img

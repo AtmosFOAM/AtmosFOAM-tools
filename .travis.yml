@@ -9,17 +9,18 @@ env:
     - ATMOSFOAM_TOOLS_SRC=$TRAVIS_BUILD_DIR/src
     - DEBFULLNAME="James Shaw"
     - DEBEMAIL=js102@zepler.net
-
-before_install:
-  - sudo sh -c "wget -O - http://dl.openfoam.org/gpg.key | apt-key add -"
-  - sudo add-apt-repository "http://dl.openfoam.org/ubuntu dev" -y
-  - sudo apt-get -qq update
+    - SINGULARITY_VERSION=2.3
 
 install:
-  - sudo apt-get install openfoam-dev devscripts debhelper ruby-dev -y
+  - cd /tmp
+  - wget https://github.com/singularityware/singularity/releases/download/$SINGULARITY_VERSION/singularity-$SINGULARITY_VERSION.tar.gz
+  - tar -xf singularity-$SINGULARITY_VERSION.tar.gz
+  - cd singularity-$SINGULARITY_VERSION
+  - ./configure --prefix=/usr/local
+  - make
+  - sudo make install
+  - sudo apt-get install ruby-dev -y
   - sudo gem install deb-s3
+  - cd $TRAVIS_BUILD_DIR
 
-before_script:
-  - source /opt/openfoam-dev/etc/bashrc
-
-script: ./dist.sh
+script: ./singularity.dist.sh 14.04 trusty && ./singularity.dist.sh 17.04 zesty
