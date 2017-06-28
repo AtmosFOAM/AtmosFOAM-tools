@@ -42,4 +42,4 @@ override_dh_auto_install:
 	mkdir -p $(DESTDIR)$(sharedir)/gmtFoam
 	cp -r gmtUser/* $(DESTDIR)$(sharedir)/gmtFoam/
 	$(INSTALL_PROGRAM) -D debian/gmtFoam.sh $(DESTDIR)/etc/profile.d/gmtFoam.sh
-	debian/install_lnInclude.sh $(DESTDIR)$(includedir)
+	debian/install_lnInclude.sh src $(DESTDIR)$(includedir)
