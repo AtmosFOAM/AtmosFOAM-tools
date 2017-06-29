@@ -4,10 +4,13 @@
 
 AtmosFOAM-tools contains generic libraries and utilities that support atmospheric simulations with [OpenFOAM](https://openfoam.org/).  These generic tools can be combined with [AtmosFOAM](https://github.com/AtmosFOAM/AtmosFOAM) and [AMMM](https://github.com/AtmosFOAM/AMMM) repositories.
 
-## Ubuntu installation
+## Ubuntu 14.04 or 17.10 binary installation
 
 A binary package is provided for amd64 processors.  To install
 
+    sudo sh -c "wget -O - http://dl.openfoam.org/gpg.key | apt-key add -"
+    sudo add-apt-repository http://dl.openfoam.org/ubuntu
+    sudo add-apt-repository "http://dl.openfoam.org/ubuntu dev"
     sudo add-apt-repository "http://atmosfoam-apt.s3-website-eu-west-1.amazonaws.com dev"
     sudo apt-get update
     sudo apt-get install atmosfoam-tools
