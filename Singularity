@@ -11,4 +11,3 @@ From:ubuntu:$VERSION
 
 	DEBIAN_FRONTEND=noninteractive \
 	apt-get install devscripts debhelper openfoam-dev -y
-	rm -rf /var/lib/apt/lists/*
