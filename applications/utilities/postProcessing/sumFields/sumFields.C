@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
     IOobject fieldHeader(fileNames[0], fileTime[0], mesh, IOobject::MUST_READ);
 
-    if ( !fieldHeader.headerOk())
+    if ( !fieldHeader.typeHeaderOk<volScalarField>(false))
     {
         FatalErrorIn("sumFields") << "Cannot read " << fileNames[0]
             << " from time directory " << fileTime[0] << exit(FatalError);

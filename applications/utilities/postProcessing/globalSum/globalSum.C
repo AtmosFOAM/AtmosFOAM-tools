@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
             IOobject::MUST_READ
         );
 
-        if (!header.headerOk())
+        if (!header.typeHeaderOk<volScalarField>(false))
         {
             Info << "No " << fieldName << endl;
         }

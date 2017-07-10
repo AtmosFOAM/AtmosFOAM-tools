@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
                 IOobject::MUST_READ
             );
 
-            if (!fieldHeader.headerOk())
+            if (!fieldHeader.typeHeaderOk<volScalarField>(false))
             {
                 fieldHeader = IOobject
                 (
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
             }
             if
             (
-                !fieldHeader.headerOk() &&
+                !fieldHeader.typeHeaderOk<volScalarField>(false) &&
                 fieldsToPlot[ifield].plotType() != FieldToPlot::MESH &&
                 fieldsToPlot[ifield].plotType() != FieldToPlot::MESHPOINTS &&
                 fieldsToPlot[ifield].plotType() != FieldToPlot::MESHCENTRES &&

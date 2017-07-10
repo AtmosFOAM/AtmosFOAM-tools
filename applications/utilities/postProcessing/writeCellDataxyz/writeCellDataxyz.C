@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
         os << "#x   y     z    " << fieldName << endl;
 
 
-        if (fieldHeader.headerOk() && fieldHeader.headerClassName() == "volScalarField")
+        if (fieldHeader.typeHeaderOk<volScalarField>(false) && fieldHeader.headerClassName() == "volScalarField")
         {
             volScalarField vf(fieldHeader, mesh);
 

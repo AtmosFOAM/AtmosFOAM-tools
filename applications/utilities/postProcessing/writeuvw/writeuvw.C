@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
             fieldName, runTime.timeName(), mesh, IOobject::MUST_READ
         );
 
-        if ( !fieldHeader.headerOk())
+        if ( !fieldHeader.typeHeaderOk<volScalarField>(false))
         {
             FatalErrorIn("writeuvw") << "Cannot read " << fieldName
                 << " from time directory " << runTime.timeName()
