@@ -134,8 +134,8 @@ int main(int argc, char *argv[])
             scalar l2 = 0;
             scalar li = 0;
             scalar l0 = 0;
-            scalar min = 0.0;
-            scalar max = 0.0;
+            scalar min = GREAT;
+            scalar max = -GREAT;
             
             forAll(sumCells, i)
             {
@@ -177,8 +177,8 @@ int main(int argc, char *argv[])
             scalar l2 = 0;
             scalar li = 0;
             scalar l0 = 0;
-            scalar min = 0.0;
-            scalar max = 0.0;
+            scalar min = GREAT;
+            scalar max = -GREAT;
             
             forAll(f, faceI)
             {
