@@ -11,8 +11,8 @@ then
 	exit 1
 fi
 
-VERSION=17.10
-CODENAME=artful
+export VERSION=17.10
+export CODENAME=artful
 
 ./singularity.bootstrap.sh $VERSION $CODENAME
 ./dist.sh $CODENAME

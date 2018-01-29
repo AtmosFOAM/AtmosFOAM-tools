@@ -11,8 +11,8 @@ then
 	exit 1
 fi
 
-VERSION=14.04
-CODENAME=trusty
+export VERSION=14.04
+export CODENAME=trusty
 
 ./singularity.bootstrap.sh $VERSION $CODENAME
 ./dist.sh $CODENAME
