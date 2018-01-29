@@ -34,7 +34,3 @@ deb-s3 upload --bucket atmosfoam-apt --codename=$CODENAME --component=dev ../atm
 
 # ensure that the new .deb can be installed
 sudo singularity exec -e -w $CODENAME.img add-apt-repository "http://atmosfoam-apt.s3-website-eu-west-1.amazonaws.com dev" -y
-sudo singularity exec -e -w $CODENAME.img apt-get update -qq --allow-insecure-repositories
-sudo singularity exec -e -w $CODENAME.img apt-get install atmosfoam-tools=$VERSION -y --allow-unauthenticated --no-install-recommends
-
-git clean -xfd .
