@@ -284,12 +284,12 @@ scalar maxSsf = 0;
 systemCall = "gmt makecpt -C" + fieldsToPlot[ifield].colourScale();
 if (colourStep > 0)
 {
-    systemCall += " -D -T" + stringScalar(colourMin,4)/stringScalar(colourMax,4)
-                  /stringScalar(colourStep,4) + " > colourScale.cpt";
+    systemCall += " -D -T" + stringScalar(colourMin,6)/stringScalar(colourMax,6)
+                  /stringScalar(colourStep,6) + " > colourScale.cpt";
 }
 else
 {
-    systemCall += " -I -D -T" +stringScalar(colourMax,3)/stringScalar(colourMin,3)
+    systemCall += " -I -D -T" +stringScalar(colourMax,4)/stringScalar(colourMin,4)
                   /stringScalar(-colourStep,3) + " > colourScale.cpt";
 }
 systemVerbose(systemCall);
@@ -340,8 +340,8 @@ if (annotate == "minMax")
 {
     systemCall = "echo '" + stringScalar(annotateX) + " "
                + stringScalar(annotateY) + " 12 0 Times-Roman TL "
-               + "min = " + stringScalar(minSsf,5)
-               + "    max = " + stringScalar(maxSsf,5);
+               + "min = " + stringScalar(minSsf,6)
+               + "    max = " + stringScalar(maxSsf,6);
 //               + "    L@-1@- = " + stringScalar(l1,4)
 //               + "    L@-2@- = " + stringScalar(l2,4);
     systemCall += "' | gmt pstext -J -R -h0 -N -O -K >>" + epsFile;

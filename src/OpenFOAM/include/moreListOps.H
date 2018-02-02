@@ -41,6 +41,40 @@ SourceFiles
 namespace Foam
 {
 
+//- Find minimum and where it is
+template<class T>
+Tuple2<T, label> minWhere(const List<T>& list)
+{
+    label where = 0;
+    T min = list[0];
+    for(label i = 1; i < list.size(); i++)
+    {
+        if (list[i] < min)
+        {
+            min = list[i];
+            where = i;
+        }
+    }
+    return Tuple2<T, label>(min, where);
+}
+
+//- Find maximum and where it is
+template<class T>
+Tuple2<T, label> maxWhere(const List<T>& list)
+{
+    label where = 0;
+    T max = list[0];
+    for(label i = 1; i < list.size(); i++)
+    {
+        if (list[i] > max)
+        {
+            max = list[i];
+            where = i;
+        }
+    }
+    return Tuple2<T, label>(max, where);
+}
+
 //- Pre add to all members of the list
 template<class T>
 List<T> add(const T& a, const List<T>& list)

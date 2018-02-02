@@ -36,7 +36,7 @@ scalar maxSsf = 0;
         }
         
         colourStep = (colourMax - colourMin)/22.;
-        if (colourMax-colourMin < 5e-4)
+        if (colourMax-colourMin < 5e-6)
         {
             colourMin -= 1;
             colourMax += 1;
@@ -53,7 +53,7 @@ scalar maxSsf = 0;
         point pi = mesh.points()[0];
         r = mag(pi);
         p0 = polarPoint(lon0, lat0, r).cartesian();
-        maxDist2 = 2*sqr(r);
+        maxDist2 = 2.5*sqr(r);
     }
 
     // Find the plot bounding box
@@ -160,22 +160,33 @@ scalar maxSsf = 0;
 }
 
 // colourscale for plot
-systemCall = "gmt makecpt -C" + fieldsToPlot[ifield].colourScale()
-                + " -Z -D -T" + stringScalar(colourMin)/stringScalar(colourMax)
-                           /stringScalar(colourStep) + " > colourScale.cpt";
+systemCall = "gmt makecpt -C" + fieldsToPlot[ifield].colourScale();
+if (colourStep > 0)
+{
+    systemCall += " -Z -D -T" + stringScalar(colourMin,6)/stringScalar(colourMax,6)
+                  /stringScalar(colourStep,6) + " > colourScale.cpt";
+}
+else
+{
+    systemCall += " -I -Z -D -T" +stringScalar(colourMax,4)/stringScalar(colourMin,4)
+                  /stringScalar(-colourStep,3) + " > colourScale.cpt";
+}
 systemVerbose(systemCall);
 
 // main colour plot
 systemCall = "gmt psxy '" + tmpFile + "' -CcolourScale.cpt"
-                           + " -J -R -h1 -W2p -O -K >> " + epsFile;
+                           + " -J -R -h1 -L -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
 // Plot legend
 if (!separateLegend)
 {
     systemCall = "gmt psscale -CcolourScale.cpt -S -K -O ";
-    systemCall += " -D9c/-0.5c/18c/0.5ch -B"
-               + stringScalar(2*colourStep) + " >> " + epsFile;
+    //if (!autoscale)
+    {
+        systemCall = systemCall + " -B" + stringScalar(2*mag(colourStep),3);
+    }
+    systemCall = systemCall + " -D9c/-0.5c/18c/0.5ch >> " + epsFile;
     systemVerbose(systemCall);
 }
 else
@@ -199,8 +210,8 @@ else
     systemCall = systemCall2 + " -D9c/-0.5c/18c/0.5ch  | ps2eps -f -q > " + legNameH;
     systemVerbose(systemCall);
 
-    systemCall = systemCall2 + " -D-0.5c/9c/18c/0.5c -B"
-                       + stringScalar(2*colourStep) + "  | ps2eps -f -q > " + legNameV;
+    systemCall = systemCall2 + " -D-0.5c/9c/18c/0.5c "
+                + " | ps2eps -f -q > " + legNameV;
     systemVerbose(systemCall);
 
     chDir("..");
@@ -211,14 +222,11 @@ if (annotate == "minMax")
 {
     systemCall = "echo '" + stringScalar(annotateX) + " "
                + stringScalar(annotateY) + " 12 0 Times-Roman TL "
-               + "min = " + stringScalar(minSsf,5)
-               + "    max = " + stringScalar(maxSsf,5);
-//               + "    L@-1@- = " + stringScalar(l1,4)
-//               + "    L@-2@- = " + stringScalar(l2,4);
+               + "min = " + stringScalar(minSsf,6)
+               + "    max = " + stringScalar(maxSsf,6);
     systemCall += "' | gmt pstext -J -R -h0 -N -O -K >>" + epsFile;
     systemVerbose(systemCall);
 }
-
 
 // delete temporary files
 systemCall = "rm colourScale.cpt '" + tmpFile + "' ";
