@@ -136,8 +136,8 @@ int main(int argc, char *argv[])
         volScalarField vfOut
         (
             IOobject(fileNameOut, runTime.timeName(), mesh),
-            scales[0]*pow(vfIn, powers[0])//,
-            //zeroGradientFvPatchScalarField::typeName
+            scales[0]*pow(vfIn, powers[0]),
+            vfIn.boundaryField().types()
         );
 
         if (mag(scales[1]) > SMALL)
@@ -187,7 +187,8 @@ int main(int argc, char *argv[])
 
         volVectorField vfIn(fieldHeader, mesh);
 
-        volVectorField vfOut = scales[0]*vfIn;
+        volVectorField vfOut = vfIn;
+        vfOut *= scales[0];
         vfOut.rename(fileNameOut);
 
         if (mag(scales[1]) > SMALL)
