@@ -73,7 +73,7 @@ inline tmp<GeometricField<vector, PatchField, GeoMesh> > unitVector
         )
     );
     
-    unitVector(tGuf(), gf);
+    unitVector(tGuf.ref(), gf);
     
     return tGuf;
 }
@@ -103,7 +103,7 @@ inline tmp<GeometricField<vector, PatchField, GeoMesh> > unitVector
         )
     );
     
-    unitVector(tGuf(), gf);
+    unitVector(tGuf.ref(), gf);
     
     tgf.clear();
     
