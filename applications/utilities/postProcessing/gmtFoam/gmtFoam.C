@@ -183,6 +183,11 @@ int main(int argc, char *argv[])
 #                               include "filledVolContours.H"
                             }
                             break;
+                        case FieldToPlot::COLOURED_CONTOURS:
+                            {
+#                               include "allColouredVolContours.H"
+                            }
+                            break;
                         case FieldToPlot::SOLID_CONTOURS:
                             if (plotAllCells)
                             {

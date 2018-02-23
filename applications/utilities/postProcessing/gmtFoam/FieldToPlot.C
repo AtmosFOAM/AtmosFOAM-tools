@@ -87,6 +87,7 @@ Foam::FieldToPlot::~FieldToPlot()
 const Foam::word Foam::FieldToPlot::plotTypeWord() const
 {
     return plotType_ == FILLED_CONTOURS ? "filledContours"
+         : plotType_ == COLOURED_CONTOURS ? "colouredContours"
          : plotType_ == SOLID_CONTOURS  ? "solidContours"
          : plotType_ == DASHED_CONTOURS ? "dashedContours"
          : plotType_ == VECTORS         ? "vectors"
@@ -163,6 +164,12 @@ Foam::Istream& Foam::operator>>(Istream& is, FieldToPlot& ftp)
     if (plotType == "filledContours")
     {
         ftp.plotType_ = FieldToPlot::FILLED_CONTOURS;
+        is >> ftp.minMaxDel_[0] >> ftp.minMaxDel_[1] >> ftp.minMaxDel_[2]
+           >> ftp.colourScale_;
+    }
+    else if (plotType == "colouredContours")
+    {
+        ftp.plotType_ = FieldToPlot::COLOURED_CONTOURS;
         is >> ftp.minMaxDel_[0] >> ftp.minMaxDel_[1] >> ftp.minMaxDel_[2]
            >> ftp.colourScale_;
     }
@@ -261,7 +268,7 @@ Foam::Istream& Foam::operator>>(Istream& is, FieldToPlot& ftp)
     {
         FatalErrorIn("Istream& operator>>(Istream&, FieldToPlot&)")
         << "Second element of FieldToPlot named " << ftp.name()
-        << " should be one of filledContours, solidContours, dashedContours, vectors, vectorContours, mesh, meshPoints, meshCentres, numbered, advectedContours, writeContours, default, rawValues or rawBoundaryValues but " << plotType << " given" << exit(FatalError);
+        << " should be one of filledContours, colouredContours, solidContours, dashedContours, vectors, vectorContours, mesh, meshPoints, meshCentres, numbered, advectedContours, writeContours, default, rawValues or rawBoundaryValues but " << plotType << " given" << exit(FatalError);
     }
 
     // Check state of IOstream

@@ -64,6 +64,7 @@ public:
     enum plotTypes
     {
         FILLED_CONTOURS,
+        COLOURED_CONTOURS,
         SOLID_CONTOURS,
         DASHED_CONTOURS,
         VECTORS,
