@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
         "meshRegion",
         "specify a non-default region to plot"
     );
+    Foam::argList::addOption("noBoundary");
 #   include "setRootCase.H"
 #   include "createTime.H"
     instantList timeDirs = timeSelector::select0(runTime, args);
@@ -92,7 +93,11 @@ int main(int argc, char *argv[])
         os << "#x   y     z    " << fieldName << endl;
 
 
-        if (fieldHeader.typeHeaderOk<volScalarField>(false) && fieldHeader.headerClassName() == "volScalarField")
+        if
+        (
+            fieldHeader.typeHeaderOk<volScalarField>(false)
+         && fieldHeader.headerClassName() == "volScalarField"
+        )
         {
             volScalarField vf(fieldHeader, mesh);
 
@@ -101,11 +106,14 @@ int main(int argc, char *argv[])
                 os << mesh.C()[celli][0] << "  " << mesh.C()[celli][1] << "  "
                    << mesh.C()[celli][2] << "  " << vf[celli] << endl;
             }
-            forAll(mesh.boundary(), patchI)
+            if (!args.optionFound("noBoundary")) forAll(mesh.boundary(), patchI)
             {
+                // Output the patch data if the patch has few faces than the 
+                // mesh (ie if it covers new ground, ie not part of a 1D
+                // or 2D domain)
                 const fvPatch& patch = mesh.boundary()[patchI];
                 const fvPatchField<scalar>& boundaryField = vf.boundaryField()[patchI];
-                forAll(patch, faceI)
+                if(patch.size() < mesh.nCells()) forAll(patch, faceI)
                 {
                     os << patch.Cf()[faceI][0] << "  " << patch.Cf()[faceI][1] <<"  "
                        << patch.Cf()[faceI][2] << "  "
@@ -160,6 +168,23 @@ int main(int argc, char *argv[])
                    << vf[cellI][0] << "  "
                    << vf[cellI][1] << "  "
                    << vf[cellI][2] << endl;
+            }
+            
+            if (!args.optionFound("noBoundary"))  forAll(mesh.boundary(), patchI)
+            {
+                // Output the patch data if the patch has few faces than the 
+                // mesh (ie if it covers new ground, ie not part of a 1D
+                // or 2D domain)
+                const fvPatch& patch = mesh.boundary()[patchI];
+                const fvPatchField<vector>& boundaryField = vf.boundaryField()[patchI];
+                if(patch.size() < mesh.nCells()) forAll(patch, faceI)
+                {
+                    os << patch.Cf()[faceI][0] << "  " << patch.Cf()[faceI][1] <<"  "
+                       << patch.Cf()[faceI][2] << "  "
+                       << boundaryField[faceI][0] << "  "
+                       << boundaryField[faceI][1] << "  "
+                       << boundaryField[faceI][2] << endl;
+                }
             }
         }
         else if (fieldHeader.headerClassName() == "volSymmTensorField")
