@@ -4,6 +4,7 @@ fvc/fvcCof.C
 fvc/fvcPosDefCof.C
 fvc/fvcDet.C
 fields/fvPatchFields/derived/geostrophic_p_rgh/geostrophic_p_rghFvPatchScalarField.C
+fields/fvPatchFields/derived/hydrostatic_p_rgh/hydrostatic_p_rghFvPatchScalarField.C
 
 LIB = $(FOAM_USER_LIBBIN)/libfiniteVolumeAtmosFOAMtools
 

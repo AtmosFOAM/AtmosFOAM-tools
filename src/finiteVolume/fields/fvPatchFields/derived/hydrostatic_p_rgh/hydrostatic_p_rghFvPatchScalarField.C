@@ -24,11 +24,12 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "geostrophic_p_rghFvPatchScalarField.H"
+#include "hydrostatic_p_rghFvPatchScalarField.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "surfaceFields.H"
+#include "uniformDimensionedFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -37,30 +38,26 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+hydrostatic_p_rghFvPatchScalarField::
+hydrostatic_p_rghFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    fixedGradientFvPatchScalarField(p, iF),
-    Ug_(vector(0,0,0)),
-    Omega_(vector(0,0,0))
+    fixedGradientFvPatchScalarField(p, iF)
 {}
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+hydrostatic_p_rghFvPatchScalarField::
+hydrostatic_p_rghFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
     const dictionary& dict
 )
 :
-    fixedGradientFvPatchScalarField(p, iF, dict),
-    Ug_(dict.lookup("geostrophicVelocity")),
-    Omega_(dict.lookup("Omega"))
+    fixedGradientFvPatchScalarField(p, iF, dict)
 {
     if (dict.found("value") && dict.found("gradient"))
     {
@@ -78,49 +75,43 @@ geostrophic_p_rghFvPatchScalarField
 }
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+hydrostatic_p_rghFvPatchScalarField::
+hydrostatic_p_rghFvPatchScalarField
 (
-    const geostrophic_p_rghFvPatchScalarField& ptf,
+    const hydrostatic_p_rghFvPatchScalarField& ptf,
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
-    fixedGradientFvPatchScalarField(ptf, p, iF, mapper),
-    Ug_(ptf.Ug_),
-    Omega_(ptf.Omega_)
+    fixedGradientFvPatchScalarField(ptf, p, iF, mapper)
 {}
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+hydrostatic_p_rghFvPatchScalarField::
+hydrostatic_p_rghFvPatchScalarField
 (
-    const geostrophic_p_rghFvPatchScalarField& wbppsf
+    const hydrostatic_p_rghFvPatchScalarField& wbppsf
 )
 :
-    fixedGradientFvPatchScalarField(wbppsf),
-    Ug_(wbppsf.Ug_),
-    Omega_(wbppsf.Omega_)
+    fixedGradientFvPatchScalarField(wbppsf)
 {}
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+hydrostatic_p_rghFvPatchScalarField::
+hydrostatic_p_rghFvPatchScalarField
 (
-    const geostrophic_p_rghFvPatchScalarField& wbppsf,
+    const hydrostatic_p_rghFvPatchScalarField& wbppsf,
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    fixedGradientFvPatchScalarField(wbppsf, iF),
-    Ug_(wbppsf.Ug_),
-    Omega_(wbppsf.Omega_)
+    fixedGradientFvPatchScalarField(wbppsf, iF)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void geostrophic_p_rghFvPatchScalarField::updateCoeffs()
+void hydrostatic_p_rghFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -129,18 +120,19 @@ void geostrophic_p_rghFvPatchScalarField::updateCoeffs()
 
     const fvPatchField<scalar>& rho
          = patch().lookupPatchField<volScalarField, scalar>("rho");
+    const uniformDimensionedVectorField& g =
+        db().lookupObject<uniformDimensionedVectorField>("g");
 
-    gradient() = -2*rho*((Omega_ ^ Ug_) & patch().nf());
-
+    gradient() = -(g.value() & patch().Cf())*rho.snGrad();
+    
     fixedGradientFvPatchScalarField::updateCoeffs();
 }
 
 
-void geostrophic_p_rghFvPatchScalarField::write(Ostream& os) const
+void hydrostatic_p_rghFvPatchScalarField::write(Ostream& os) const
 {
     fixedGradientFvPatchScalarField::write(os);
-    os << "        geostrophicVelocity " << Ug_ << ';' << endl;
-    os << "        Omega               " << Omega_ << ';' << endl;
+    writeEntry("value", os);
 }
 
 
@@ -149,7 +141,7 @@ void geostrophic_p_rghFvPatchScalarField::write(Ostream& os) const
 makePatchTypeField
 (
     fvPatchScalarField,
-    geostrophic_p_rghFvPatchScalarField
+    hydrostatic_p_rghFvPatchScalarField
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
