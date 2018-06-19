@@ -43,11 +43,21 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
     (
         IOobject
         (
-            "sum."+baseName_, timeName, mesh,
-            IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
+            baseName_+".sum", timeName, mesh,
+            IOobject::READ_IF_PRESENT, IOobject::NO_WRITE
         ),
         mesh,
         dimensioned<Type>("sum", dimless, pTraits<Type>::zero)
+    ),
+    mean_
+    (
+        IOobject
+        (
+            baseName_, timeName, mesh,
+            IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(false),
     sigma_(*this),
@@ -70,7 +80,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         );
     }
 
-    updateSum();
+    updateMean();
 }
 
 
@@ -92,10 +102,20 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         IOobject
         (
             baseName_+".sum", timeName, mesh,
-            IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
+            IOobject::READ_IF_PRESENT, IOobject::NO_WRITE
         ),
         mesh,
         dimensioned<Type>("sum", dimless, pTraits<Type>::zero)
+    ),
+    mean_
+    (
+        IOobject
+        (
+            baseName_, timeName, mesh,
+            IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(true),
     sigma_(sigma__),
@@ -118,7 +138,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         );
     }
 
-    updateSum();
+    updateMean();
 }
 
 
@@ -137,11 +157,21 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
     (
         IOobject
         (
+            baseName_, field.time().timeName(), field.mesh(),
+            IOobject::READ_IF_PRESENT, IOobject::NO_WRITE
+        ),
+        field.mesh(),
+        dimensioned<Type>("sum", dimless, pTraits<Type>::zero)
+    ),
+    mean_
+    (
+        IOobject
+        (
             baseName_+".sum", field.time().timeName(), field.mesh(),
             IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
         ),
         field.mesh(),
-        dimensioned<Type>("sum", dimless, pTraits<Type>::zero)
+        dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(false),
     sigma_(*this),
@@ -165,7 +195,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
             )
         );
     }
-    updateSum();
+    updateMean();
 }
 
 
@@ -187,10 +217,20 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         IOobject
         (
             baseName_+".sum", field.time().timeName(), field.mesh(),
-            IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
+            IOobject::READ_IF_PRESENT, IOobject::NO_WRITE
         ),
         field.mesh(),
         dimensioned<Type>("sum", dimless, pTraits<Type>::zero)
+    ),
+    mean_
+    (
+        IOobject
+        (
+            baseName_, field.time().timeName(), field.mesh(),
+            IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE
+        ),
+        field.mesh(),
+        dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(true),
     sigma_(sigma__),
@@ -215,7 +255,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
             )
         );
     }
-    updateSum();
+    updateMean();
 }
 
 
@@ -232,7 +272,9 @@ template<class Type, template<class> class PatchField, class GeoMesh>
 const Foam::GeometricField<Type, PatchField, GeoMesh>&
 Foam::PartitionedField<Type, PatchField, GeoMesh>::updateSum()
 {
-    // Sum depends on whether it is sigma weighted
+    mean_.dimensions().reset(operator[](0).dimensions());
+
+    // Depends on whether it is sigma weighted
     
     if (!needsSigma_)
     {
@@ -244,6 +286,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::updateSum()
         {
             sum_ += operator[](ip);
         }
+        mean_ = sum_;
     }
     else
     {
@@ -259,9 +302,19 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::updateSum()
         {
             sum_ += sigma_[ip]*operator[](ip);
         }
+        mean_ = sum_/sigma_.sum();
     }
     
     return sum_;
+}
+
+
+template<class Type, template<class> class PatchField, class GeoMesh>
+const Foam::GeometricField<Type, PatchField, GeoMesh>&
+Foam::PartitionedField<Type, PatchField, GeoMesh>::updateMean()
+{
+    updateSum();
+    return mean_;
 }
 
 
@@ -365,8 +418,9 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::storeTime()
         operator[](ip).oldTime();
     }
     
-    // Store old sum
+    // Store old sum and mean
     sum().oldTime();
+    mean().oldTime();
     
     // Create fields for all the time directories
     ddtPtr_ = new PtrList<GeometricField<Type, PatchField, GeoMesh> >
@@ -405,7 +459,7 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::write()
     }
 
     updateSum();
-    sum_.write();
+    mean_.write();
 
     // Write out old time and rate of change if set
     if (ddtPtr_)
@@ -449,6 +503,7 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::operator=
         operator[](ip) = gf[ip];
     }
     sum_ = gf.sum();
+    mean_ = gf.mean();
 }
 
 template<class Type, template<class> class PatchField, class GeoMesh>
@@ -464,13 +519,13 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::operator+=
             << " attempting to add two fields with different sigmas"
             << abort(FatalError);
     }
-    
-    sum_ += gf.sum();
 
     for(label ip = 0; ip < size(); ip++)
     {
         operator[](ip) += gf[ip];
     }
+    
+    updateSum();
 }
 
 
@@ -487,13 +542,13 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::operator-=
             << " attempting to add two fields with different sigmas"
             << abort(FatalError);
     }
-    
-    sum_ -= gf.sum();
 
     for(label ip = 0; ip < size(); ip++)
     {
         operator[](ip) -= gf[ip];
     }
+
+    updateSum();
 }
 
 

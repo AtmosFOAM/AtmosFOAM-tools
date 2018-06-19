@@ -19,12 +19,12 @@ f=$1
    dirName=`dirname $f`
    fRoot=`basename $f .eps`
    thisDir=$PWD
-   echo creating $dirName/$fRoot.bmp
+   echo creating $dirName/$fRoot.ppm
    cd $dirName
-   echo quit | gs -sDEVICE=bmp256 -sPAPERSIZE=a2 -r100 -q -dNOPAUSE -sOutputFile=%stdout% -- $fileName | \
-             convert -trim - $fRoot.bmp
+   echo quit | gs -sDEVICE=ppmraw -sPAPERSIZE=a2 -r100 -q -dSAFER -dNOPAUSE -sOutputFile=%stdout% -- $fileName | \
+             convert -trim - $fRoot.ppm
    cd $thisDir
-   fileNames="$fileNames $dirName/$fRoot.bmp"
+   fileNames="$fileNames $dirName/$fRoot.ppm"
 
    shift
 
@@ -38,6 +38,6 @@ convert -crop 0x0 -set delay 30 $fileNames $outFile
 \rm $fileNames
 
 #png16 png16m png256 png48 pnga pngalpha
-#bmp256 pbmraw
+#bmp256 pbmraw     ppmraw
 
 animate $outFile &

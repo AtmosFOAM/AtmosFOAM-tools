@@ -29,6 +29,8 @@ Description
     Holds a reference to an optional partionedField sigma which is the 
     fraction of the total so that 
     sum = sum(sigma*field)
+    and 
+    mean = sum(sigma*field)/sum(sigma)
     or if sigma does not exist then
     sum = sum(field)
 
@@ -64,8 +66,11 @@ class PartitionedField
         //- The names of the parts
         const wordList partNames_;
 
-        //- The sum over all partitions
+        //- The sum over all partitions (weighted by sigma)
         GeometricField<Type, PatchField, GeoMesh> sum_;
+
+        //- The mean over all partitions (weighted by sigma)
+        GeometricField<Type, PatchField, GeoMesh> mean_;
 
         //- Switch - does the PartitionedField hold a reference to sigma
         const Switch needsSigma_;
@@ -77,7 +82,7 @@ class PartitionedField
         mutable PtrList<GeometricField<Type, PatchField, GeoMesh> >* ddtPtr_;
 
     // Dissallow copy construct
-    //    PartitionedField(const PartitionedField&);
+        //PartitionedField(const PartitionedField&);
 
 
 public:
@@ -137,9 +142,13 @@ public:
         //- The names of the parts
         const wordList& partNames() const { return partNames_; }
 
-        //- The sum over all partitions
+        //- The sum over all partitions (weighted by sigma)
         const GeometricField<Type, PatchField, GeoMesh>& sum() const
             { return sum_; }
+
+        //- The mean over all partitions (weighted by sigma)
+        const GeometricField<Type, PatchField, GeoMesh>& mean() const
+            { return mean_; }
 
         //- Switch - does the PartitionedField hold a reference to sigma
         const Switch& needsSigma() const { return needsSigma_;}
@@ -174,9 +183,12 @@ public:
 
     // Member Functions
 
-        //- Sum over partitions weighting by sigma and return the sum
+        //- Update sum and mean and return sum
         const GeometricField<Type, PatchField, GeoMesh>& updateSum();
-
+        
+        //- Update sum and mean and return mean
+        const GeometricField<Type, PatchField, GeoMesh>& updateMean();
+        
         //- Multiply the field by sigma
         PartitionedField<Type, PatchField, GeoMesh> timesSigma() const;
 
