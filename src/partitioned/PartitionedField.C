@@ -60,7 +60,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(false),
-    sigma_(*this),
+    sigmaPtr_(NULL),
     ddtPtr_(NULL)
 {
     for(label ip = 0; ip < size(); ip++)
@@ -118,7 +118,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(true),
-    sigma_(sigma__),
+    sigmaPtr_(&sigma__),
     ddtPtr_(NULL)
 {
     for(label ip = 0; ip < size(); ip++)
@@ -174,7 +174,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(false),
-    sigma_(*this),
+    sigmaPtr_(NULL),
     ddtPtr_(NULL)
 {
     for(label ip = 0; ip < size(); ip++)
@@ -233,7 +233,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::PartitionedField
         dimensioned<Type>("mean", dimless, pTraits<Type>::zero)
     ),
     needsSigma_(true),
-    sigma_(sigma__),
+    sigmaPtr_(&sigma__),
     ddtPtr_(NULL)
 {
     for(label ip = 0; ip < size(); ip++)
@@ -292,17 +292,17 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::updateSum()
     {
         sum_.dimensions().reset
         (
-            operator[](0).dimensions()*sigma_[0].dimensions()
+            operator[](0).dimensions()*sigma()[0].dimensions()
         );
     
-        sum_ = sigma_[0]*operator[](0);
+        sum_ = sigma()[0]*operator[](0);
 
         // Sum contributions from other partitions
         for (label ip = 1; ip < size(); ip++)
         {
-            sum_ += sigma_[ip]*operator[](ip);
+            sum_ += sigma()[ip]*operator[](ip);
         }
-        mean_ = sum_/sigma_.sum();
+        mean_ = sum_/sigma().sum();
     }
     
     return sum_;
@@ -330,14 +330,14 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::timesSigma() const
     }
     
     // Name of the timesSigma
-    string newName = baseName()+'.'+sigma_.baseName();
+    string newName = baseName()+'.'+sigma().baseName();
     
     // Geometric field to start from
     const GeometricField<Type, PatchField, GeoMesh>& f = operator[](0);
     GeometricField<Type, PatchField, GeoMesh> fracField
     (
         IOobject(newName, f.time().timeName(), f.mesh()),
-        f*sigma_[0],
+        f*sigma()[0],
         f.boundaryField().types()
     );
     
@@ -348,7 +348,7 @@ Foam::PartitionedField<Type, PatchField, GeoMesh>::timesSigma() const
     
     for(label ip = 1; ip < size(); ip++)
     {
-        frac[ip] = operator[](ip)*sigma_[ip];
+        frac[ip] = operator[](ip)*sigma()[ip];
     }
     
     frac.updateSum();
@@ -513,7 +513,7 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::operator+=
 )
 {
     // Check that you are adding two partitions with the same sigma
-    if (&sigma_ != &gf.sigma())
+    if (sigmaPtr_ != &gf.sigma())
     {
         FatalErrorIn("PartitionedField::operator+=")
             << " attempting to add two fields with different sigmas"
@@ -536,7 +536,7 @@ void Foam::PartitionedField<Type, PatchField, GeoMesh>::operator-=
 )
 {
     // Check that you are subtracting two partitions with the same sigma
-    if (&sigma_ != &gf.sigma())
+    if (sigmaPtr_ != &gf.sigma())
     {
         FatalErrorIn("PartitionedField::operator-=")
             << " attempting to add two fields with different sigmas"

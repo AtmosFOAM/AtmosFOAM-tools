@@ -76,7 +76,7 @@ class PartitionedField
         const Switch needsSigma_;
 
         //- The fractions in each partition
-        const PartitionedField<scalar, PatchField, GeoMesh>& sigma_;
+        const PartitionedField<scalar, PatchField, GeoMesh>* sigmaPtr_;
 
         //- Optional storage for the rates of change
         mutable PtrList<GeometricField<Type, PatchField, GeoMesh> >* ddtPtr_;
@@ -155,7 +155,7 @@ public:
 
         //- Return sigma
         const PartitionedField<scalar, PatchField, GeoMesh>& sigma() const
-            { return sigma_; }
+            { return *sigmaPtr_; }
             
         //- Rate of change - const access
         const PtrList<GeometricField<Type, PatchField, GeoMesh>>& ddt() const
