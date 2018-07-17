@@ -119,6 +119,11 @@ public:
         {
             return PtrList<Type>::set(ip, T);
         }
+        
+        void set(label ip, Type* Tp)
+        {
+            PtrList<Type>::set(ip, Tp);
+        }
 };
 
 
