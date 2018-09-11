@@ -3,7 +3,7 @@
 # source in input files
 for file in $*; do
     if [ -a $file ]; then
-        . $file
+        source $file
     fi
 done
 
@@ -154,7 +154,7 @@ fi
 # plot line legends if given
 if [ -a ${outFile}.legends.dat ]; then
     gmt set IO_N_HEADER_RECS = 0
-    gmt pslegend ${outFile}.legends.dat -D$legPos/15c/7c/TL -O -K >> $outFile
+    gmt pslegend ${outFile}.legends.dat -D$legPos+w0.1/0 -O -K >> $outFile
     rm ${outFile}.legends.dat
 fi
 
@@ -174,7 +174,7 @@ fi
 # plot symbol legends if given
 if [ -a ${outFile}.legends.dat ]; then
     gmt set IO_N_HEADER_RECS = 0
-    gmt pslegend ${outFile}.legends.dat -D$legPos/15c/7c/TL -O -K >> $outFile
+    gmt pslegend ${outFile}.legends.dat -D$legPos+w0.1/0 -O -K >> $outFile
     rm ${outFile}.legends.dat
 fi
 
