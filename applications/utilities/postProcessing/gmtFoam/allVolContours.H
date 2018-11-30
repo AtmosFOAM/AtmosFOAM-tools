@@ -18,7 +18,7 @@ fileName tmpBFile = args.rootPath() / args.caseName()
         colourMax = max(sf).value();
         colourStep = 0.1*(colourMax - colourMin);
     }
-    if (colourMax-colourMin < 5e-4)
+    if (colourMax-colourMin < 1e-9)
     {
         colourMin -= 1;
         colourMax += 1;
