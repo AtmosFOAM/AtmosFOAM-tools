@@ -1,4 +1,0 @@
-gaussian.C
-gaussianIO.C
-
-LIB = $(FOAM_USER_LIBBIN)/libmorePrescribedFields
