@@ -1,7 +1,0 @@
-EXE_INC = -g \
-    -I$(ATMOSFOAM_TOOLS_SRC)/geometry/lnInclude
-
-EXE_LIBS = \
-    -L$(FOAM_USER_LIBBIN) \
-    -lOpenFOAM \
-    -lgeometry

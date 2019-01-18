@@ -5,6 +5,8 @@
 *.dll
 *.exe
 *.o
+*.s
+*.ii
 *.so
 *.pyc
 
@@ -71,8 +73,10 @@ linux*
 lnInclude
 
 # Time and mesh directories #
+[0-9]
 [0-9]*[0-9]
 polyMesh
+processor*
 
 # Modified source code #
 ########################
@@ -93,11 +97,20 @@ polyMesh
 *.lot
 *.ttt
 
+testcases/build
+*.OpenFOAM
+Singularity.*
+*.img
 debian/build
 debian/changelog
 debian/debhelper-build-stamp
 debian/files
-debian/atmosfoam-tools.debhelper.log
-debian/atmosfoam-tools.substvars
-debian/atmosfoam-tools
-*.img
+debian/atmosfoam.debhelper.log
+debian/atmosfoam.substvars
+debian/atmosfoam
+
+# paraFoam files
+#########################
+*.foam
+*.obj
+*.blockMesh

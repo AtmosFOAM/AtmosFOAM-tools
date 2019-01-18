@@ -1,5 +1,0 @@
-checks.C
-testAtmosFOAMtools.C
-test_sphericalVector.C
-
-EXE = $(FOAM_USER_APPBIN)/testAtmosFOAM-tools
