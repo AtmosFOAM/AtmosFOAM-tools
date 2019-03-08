@@ -15,6 +15,7 @@ class cosineTracerField final : public tracerField
     const scalar width_;
     const point centre_;
     const scalar maxTracer_;
+    const scalar backgroundTracer_;
 };
 
 #endif

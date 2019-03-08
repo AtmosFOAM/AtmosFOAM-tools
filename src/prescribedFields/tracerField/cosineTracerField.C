@@ -11,19 +11,21 @@ cosineTracerField::cosineTracerField
 )
 :
     tracerField(velocityField),
-    width_(dict.lookupOrDefault<scalar>("width", scalar(8))),
-    centre_(dict.lookupOrDefault<point>("centre", point(100, 0, 100))),
-    maxTracer_(dict.lookupOrDefault<scalar>("maxTracer", scalar(1)))
+    width_(readScalar(dict.lookup("width"))),
+    centre_(dict.lookup("centre")),
+    maxTracer_(readScalar(dict.lookup("maxTracer"))),
+    backgroundTracer_(dict.lookupOrDefault<scalar>("backgroundTracer", 0))
 {}
 
 scalar cosineTracerField::tracerAt(const point& p, const Time& t) const
 {
-    if (mag(p - centre_) < (width_*2))
+    if (mag(p - centre_) < width_)
     {
-        return maxTracer_*0.5*(1+Foam::cos(M_PI*mag(p - centre_)/(width_*2)));
+        return backgroundTracer_
+             + maxTracer_*0.5*(1+Foam::cos(M_PI*mag(p - centre_)/width_));
     }
     else
     {
-        return 0;
+        return backgroundTracer_;
     }
 }
