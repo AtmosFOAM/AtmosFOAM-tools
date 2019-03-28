@@ -11,9 +11,9 @@ gaussianTracerField::gaussianTracerField
 )
 :
     tracerField(velocityField),
-    width_(dict.lookupOrDefault<scalar>("width", scalar(8))),
-    centre_(dict.lookupOrDefault<point>("centre", point(100, 0, 100))),
-    maxTracer_(dict.lookupOrDefault<scalar>("maxTracer", scalar(1)))
+    width_(readScalar(dict.lookup("width"))),
+    centre_(dict.lookup("centre")),
+    maxTracer_(readScalar(dict.lookup("maxTracer")))
 {}
 
 scalar gaussianTracerField::tracerAt(const point& p, const Time& t) const
