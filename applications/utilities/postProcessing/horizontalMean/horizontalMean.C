@@ -114,9 +114,21 @@ int main(int argc, char *argv[])
         hMeanDict.lookup("fieldNamesAndDensities")
     );
     
+    // Check that levelInterfaces are monotonically increasing
+    for(label il = 0; il < levelInterfaces.size()-1; il++)
+    {
+        if (levelInterfaces[il+1] <= levelInterfaces[il])
+        {
+            FatalErrorIn("horizontalMean")
+                << "levelInterfaces must be monotonically increasing, not "
+                << levelInterfaces << exit(FatalError);
+        }
+    }
+    
     // Mid levels for output
-    scalarList levels(levelInterfaces.size()-1);
-    for(label il = 0; il < levels.size(); il++)
+    const label nLevels = levelInterfaces.size()-1;
+    scalarList levels(nLevels);
+    for(label il = 0; il < nLevels; il++)
     {
         levels[il] = 0.5*(levelInterfaces[il] + levelInterfaces[il+1]);
     }
@@ -128,23 +140,31 @@ int main(int argc, char *argv[])
 
         mesh.readUpdate();
 
+        // Find the total volume in all cells in each layer
+        scalarList totalVolume(nLevels, scalar(0));
+        forAll(mesh.V(), cellI)
+        {
+            const scalar h = mesh.C()[cellI].z();
+            label ilh = -1;
+            for(label il = 0; il < nLevels && ilh == -1; il++)
+            {
+                if (h >= levelInterfaces[il] && h <= levelInterfaces[il+1])
+                {
+                    ilh = il;
+                }
+            }
+            
+            if (ilh != -1)
+            {
+                totalVolume[ilh] += mesh.V()[cellI];
+            }
+        }
+
         forAll(fieldNamesAndDensities, fieldI)
         {
             const Pair<word>& fieldDensity = fieldNamesAndDensities[fieldI];
-            Info << "Reading in field and density pair " << fieldDensity << endl;
-            
-
-            // initialise output file
-            fileName outFile = args.optionFound("cellSet") ?
-                args.rootPath() / args.caseName() / runTime.timeName() 
-                    / "horizontalMean"+args.optionRead<string>("cellSet")+fieldDensity[0]+".dat"
-              : args.rootPath() / args.caseName() / runTime.timeName() 
-                    / "horizontalMean"+fieldDensity[0]+".dat";
-            Info << "Writing horizontal means to " << outFile << endl;
-            OFstream os(outFile);
-            os << "#level mean stdDev min max" << endl;
         
-            volScalarField f
+            const volScalarField f
             (
                 IOobject
                 (
@@ -153,7 +173,7 @@ int main(int argc, char *argv[])
                 ),
                 mesh
             );
-            volScalarField rho
+            const volScalarField rho
             (
                 IOobject
                 (
@@ -165,6 +185,65 @@ int main(int argc, char *argv[])
             );
             Info << fieldDensity[0] << " weighted by density " 
                  << fieldDensity[1] << endl;
+
+            // initialise output file
+            fileName outFile = args.optionFound("cellSet") ?
+                args.rootPath() / args.caseName() / runTime.timeName() 
+                    / "horizontalMean_"+args.optionRead<string>("cellSet")
+                      +"_"+fieldDensity[0]+".dat"
+              : args.rootPath() / args.caseName() / runTime.timeName() 
+                    / "horizontalMean_"+fieldDensity[0]+".dat";
+            Info << "Writing horizontal means to " << outFile << endl;
+            OFstream os(outFile);
+            os << "#level volFraction rho mean stdDev min max" << endl;
+            
+            scalarList meanfRho(nLevels, scalar(0));
+            scalarList meanSqrfRho(nLevels, scalar(0));
+            scalarList minf(nLevels, GREAT);
+            scalarList maxf(nLevels, -GREAT);
+            scalarList mass(nLevels, scalar(0));
+            scalarList volume(nLevels, scalar(0));
+            
+            // Loop through all cells and asign values to the correct level
+            forAll(sumCells, i)
+            {
+                const label cellI = sumCells[i];
+                const scalar h = mesh.C()[cellI].z();
+                label ilh = -1;
+                for(label il = 0; il < nLevels && ilh == -1; il++)
+                {
+                    if (h >= levelInterfaces[il] && h <= levelInterfaces[il+1])
+                    {
+                        ilh = il;
+                    }
+                }
+                
+                if (ilh != -1)
+                {
+                    volume[ilh] += mesh.V()[cellI];
+                    mass[ilh] += mesh.V()[cellI]*rho[cellI];
+                    meanfRho[ilh] += mesh.V()[cellI]*f[cellI]*rho[cellI];
+                    meanSqrfRho[ilh] += mesh.V()[cellI]
+                                       *sqr(f[cellI] )*rho[cellI];
+                    if (f[cellI] <= minf[ilh]) minf[ilh] = f[cellI];
+                    if (f[cellI] >= maxf[ilh]) maxf[ilh] = f[cellI];
+                }
+            }
+            
+            for(label il = 0; il < nLevels; il++)
+            {
+                scalar massMin = max(mass[il], VSMALL);
+                scalar var = (massMin*meanSqrfRho[il] - sqr(meanfRho[il]))
+                             /sqr(massMin);
+                
+                os << levels[il] << " " 
+                   << volume[il]/totalVolume[il] << " " 
+                   << massMin/volume[il] << " "
+                   << meanfRho[il]/massMin << " "
+                   << Foam::sqrt(var) << " " 
+                   << minf[il] << " "
+                   << maxf[il] << endl;
+            }
         }
     }
     return(0);
