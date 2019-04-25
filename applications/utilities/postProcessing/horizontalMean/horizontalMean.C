@@ -190,9 +190,9 @@ int main(int argc, char *argv[])
             fileName outFile = args.optionFound("cellSet") ?
                 args.rootPath() / args.caseName() / runTime.timeName() 
                     / "horizontalMean_"+args.optionRead<string>("cellSet")
-                      +"_"+fieldDensity[0]+".dat"
+                      +"_"+fieldDensity[1]+"_"+fieldDensity[0]+".dat"
               : args.rootPath() / args.caseName() / runTime.timeName() 
-                    / "horizontalMean_"+fieldDensity[0]+".dat";
+                    / "horizontalMean_"+fieldDensity[1]+"_"+fieldDensity[0]+".dat";
             Info << "Writing horizontal means to " << outFile << endl;
             OFstream os(outFile);
             os << "#level volFraction rho mean stdDev min max" << endl;

@@ -24,11 +24,12 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "geostrophic_p_rghFvPatchScalarField.H"
+#include "fixedHeatFluxFvPatchScalarField.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "surfaceFields.H"
+#include "uniformDimensionedFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -37,21 +38,22 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+fixedHeatFluxFvPatchScalarField::
+fixedHeatFluxFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF
 )
 :
     fixedGradientFvPatchScalarField(p, iF),
-    Ug_(vector(0,0,0)),
-    Omega_(vector(0,0,0))
+    heatFlux_(p.size(), scalar(0)),
+    densityName_("densityNameMustBeSet"),
+    diffusivityName_("diffusivityNameMustBeSet")
 {}
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+fixedHeatFluxFvPatchScalarField::
+fixedHeatFluxFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -59,8 +61,9 @@ geostrophic_p_rghFvPatchScalarField
 )
 :
     fixedGradientFvPatchScalarField(p, iF, dict),
-    Ug_(dict.lookup("geostrophicVelocity")),
-    Omega_(dict.lookup("Omega"))
+    heatFlux_("heatFlux", dict, p.size()),
+    densityName_(dict.lookup("densityName")),
+    diffusivityName_(dict.lookup("diffusivityName"))
 {
     if (dict.found("value") && dict.found("gradient"))
     {
@@ -78,49 +81,52 @@ geostrophic_p_rghFvPatchScalarField
 }
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+fixedHeatFluxFvPatchScalarField::
+fixedHeatFluxFvPatchScalarField
 (
-    const geostrophic_p_rghFvPatchScalarField& ptf,
+    const fixedHeatFluxFvPatchScalarField& ptf,
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
     fixedGradientFvPatchScalarField(ptf, p, iF, mapper),
-    Ug_(ptf.Ug_),
-    Omega_(ptf.Omega_)
+    heatFlux_(p.size(), scalar(0)),
+    densityName_("densityNameMustBeSet"),
+    diffusivityName_("diffusivityNameMustBeSet")
 {}
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+fixedHeatFluxFvPatchScalarField::
+fixedHeatFluxFvPatchScalarField
 (
-    const geostrophic_p_rghFvPatchScalarField& wbppsf
+    const fixedHeatFluxFvPatchScalarField& wbppsf
 )
 :
     fixedGradientFvPatchScalarField(wbppsf),
-    Ug_(wbppsf.Ug_),
-    Omega_(wbppsf.Omega_)
+    heatFlux_(wbppsf.heatFlux_),
+    densityName_(wbppsf.densityName_),
+    diffusivityName_(wbppsf.diffusivityName_)
 {}
 
 
-geostrophic_p_rghFvPatchScalarField::
-geostrophic_p_rghFvPatchScalarField
+fixedHeatFluxFvPatchScalarField::
+fixedHeatFluxFvPatchScalarField
 (
-    const geostrophic_p_rghFvPatchScalarField& wbppsf,
+    const fixedHeatFluxFvPatchScalarField& wbppsf,
     const DimensionedField<scalar, volMesh>& iF
 )
 :
     fixedGradientFvPatchScalarField(wbppsf, iF),
-    Ug_(wbppsf.Ug_),
-    Omega_(wbppsf.Omega_)
+    heatFlux_(wbppsf.heatFlux_),
+    densityName_(wbppsf.densityName_),
+    diffusivityName_(wbppsf.diffusivityName_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void geostrophic_p_rghFvPatchScalarField::updateCoeffs()
+void fixedHeatFluxFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -128,20 +134,23 @@ void geostrophic_p_rghFvPatchScalarField::updateCoeffs()
     }
 
     const fvPatchField<scalar>& rho
-         = patch().lookupPatchField<volScalarField, scalar>("rho");
+         = patch().lookupPatchField<volScalarField, scalar>(densityName_);
+    const uniformDimensionedScalarField& alpha =
+        db().lookupObject<uniformDimensionedScalarField>(diffusivityName_);
 
-    gradient() = -2*rho*((Omega_ ^ Ug_) & patch().nf());
-
+    gradient() = heatFlux_/(rho*alpha.value());
+    
     fixedGradientFvPatchScalarField::updateCoeffs();
 }
 
 
-void geostrophic_p_rghFvPatchScalarField::write(Ostream& os) const
+void fixedHeatFluxFvPatchScalarField::write(Ostream& os) const
 {
     fixedGradientFvPatchScalarField::write(os);
     writeEntry(os, "value", *this);
-    os << "        geostrophicVelocity " << Ug_ << ';' << endl;
-    os << "        Omega               " << Omega_ << ';' << endl;
+    writeEntry(os, "heatFlux", heatFlux_);
+    writeEntry(os, "densityName", densityName_);
+    writeEntry(os, "diffusivityName", diffusivityName_);
 }
 
 
@@ -150,7 +159,7 @@ void geostrophic_p_rghFvPatchScalarField::write(Ostream& os) const
 makePatchTypeField
 (
     fvPatchScalarField,
-    geostrophic_p_rghFvPatchScalarField
+    fixedHeatFluxFvPatchScalarField
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
