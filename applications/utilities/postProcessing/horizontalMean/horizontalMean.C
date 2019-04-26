@@ -225,8 +225,10 @@ int main(int argc, char *argv[])
                     meanfRho[ilh] += mesh.V()[cellI]*f[cellI]*rho[cellI];
                     meanSqrfRho[ilh] += mesh.V()[cellI]
                                        *sqr(f[cellI] )*rho[cellI];
-                    if (f[cellI] <= minf[ilh]) minf[ilh] = f[cellI];
-                    if (f[cellI] >= maxf[ilh]) maxf[ilh] = f[cellI];
+                    if (f[cellI] <= minf[ilh] && rho[cellI] > VSMALL)
+                        { minf[ilh] = f[cellI]; }
+                    if (f[cellI] >= maxf[ilh] && rho[cellI] > VSMALL)
+                        { maxf[ilh] = f[cellI]; }
                 }
             }
             
