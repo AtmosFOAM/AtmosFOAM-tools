@@ -110,6 +110,9 @@ while  [ $i != ${#inputFiles[*]} ]; do
     if [ ${#yscale[*]} -gt $i ]; then ysc=${yscale[$i]};
     else ysc=${yscale[0]}; fi
 
+    if [ ${#xscale[*]} -gt $i ]; then xsc=${xscale[$i]};
+    else xsc=${xscale[0]}; fi
+
     if [ ${#col[*]} -gt $i ]; then c=${col[$i]};
     else c=$col; fi
     
@@ -121,12 +124,12 @@ while  [ $i != ${#inputFiles[*]} ]; do
             ( \
                 $1 == 1*$1 \
              && $'$c''$ysc' >= '$ymin' \
-             && $'$cx''$xscale' >= '$xmin' \
+             && $'$cx''$xsc' >= '$xmin' \
             ) \
             {
-                print $'$cx''$xscale', $'$c''$ysc'\
+                print $'$cx''$xsc', $'$c''$ysc'\
             }
-            else { print $'$cx''$xscale', "-inf" }
+            else { print $'$cx''$xsc', "-inf" }
         }' $inFile > $outFile.tmp
     if [ ${#symbols[*]} -gt $i ]; then
         gmt psxy -J -R -A -h$nSkip -S${symbols[$i]} -W${spens[$i]} $outFile.tmp -K -O \

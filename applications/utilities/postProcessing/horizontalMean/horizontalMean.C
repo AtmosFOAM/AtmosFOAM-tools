@@ -44,6 +44,7 @@ Description
 int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
+    #include "addDictOption.H"
     argList::addOption
     (
         "region",
@@ -98,15 +99,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    Info << "\nReading dictionary horizontalMeanDict\n" << endl;
-    IOdictionary hMeanDict
-    (
-        IOobject
-        (
-            "horizontalMeanDict", runTime.system(), runTime,
-            IOobject::MUST_READ, IOobject::NO_WRITE
-        )
-    );
+    const word dictName("horizontalMeanDict");
+    #include "setSystemMeshDictionaryIO.H"
+    IOdictionary hMeanDict(dictIO);
+    Info << "\nReading dictionary " << hMeanDict.name() << endl;
     
     const scalarList levelInterfaces(hMeanDict.lookup("levelInterfaces"));
     const List<Pair<word>> fieldNamesAndDensities
@@ -234,15 +230,14 @@ int main(int argc, char *argv[])
             
             for(label il = 0; il < nLevels; il++)
             {
-                scalar massMin = max(mass[il], VSMALL);
+                scalar massMin = max(mass[il], SMALL);
                 scalar var = (massMin*meanSqrfRho[il] - sqr(meanfRho[il]))
                              /sqr(massMin);
-                
                 os << levels[il] << " " 
                    << volume[il]/totalVolume[il] << " " 
                    << massMin/volume[il] << " "
                    << meanfRho[il]/massMin << " "
-                   << Foam::sqrt(var) << " " 
+                   << Foam::sqrt(mag(var)) << " " 
                    << minf[il] << " "
                    << maxf[il] << endl;
             }
