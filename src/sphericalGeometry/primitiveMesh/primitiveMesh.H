@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2019 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -151,7 +151,7 @@ class primitiveMesh
             mutable labelListList* cpPtr_;
 
 
-        // On-the-fly edge addresing storage
+        // On-the-fly edge addressing storage
 
             //- Temporary storage for addressing.
             mutable DynamicList<label> labels_;
@@ -472,6 +472,16 @@ public:
             cellList& cells
         );
 
+        //- Reset this primitiveMesh given the primitive array sizes and cells
+        void reset
+        (
+            const label nPoints,
+            const label nInternalFaces,
+            const label nFaces,
+            const label nCells,
+            cellList&& cells
+        );
+
 
         // Access
 
@@ -505,7 +515,7 @@ public:
                 //- Return faces
                 virtual const faceList& faces() const = 0;
 
-                //- Face face-owner addresing
+                //- Face face-owner addressing
                 virtual const labelList& faceOwner() const = 0;
 
                 //- Face face-neighbour addressing
@@ -597,35 +607,35 @@ public:
                 virtual bool checkUpperTriangular
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check cell zip-up
                 virtual bool checkCellsZipUp
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check uniqueness of face vertices
                 virtual bool checkFaceVertices
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check for unused points
                 virtual bool checkPoints
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check face-face connectivity
                 virtual bool checkFaceFaces
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
 
@@ -639,8 +649,8 @@ public:
                 virtual bool checkClosedCells
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL,
-                    labelHashSet* highAspectSetPtr = NULL,
+                    labelHashSet* setPtr = nullptr,
+                    labelHashSet* highAspectSetPtr = nullptr,
                     const Vector<label>& solutionD = Vector<label>::one
                 ) const;
 
@@ -648,36 +658,36 @@ public:
                 virtual bool checkFaceAreas
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check for negative cell volumes
                 virtual bool checkCellVolumes
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check for non-orthogonality
                 virtual bool checkFaceOrthogonality
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check face pyramid volume
                 virtual bool checkFacePyramids
                 (
                     const bool report = false,
-                    const scalar minPyrVol = -SMALL,
-                    labelHashSet* setPtr = NULL
+                    const scalar minPyrVol = -small,
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check face skewness
                 virtual bool checkFaceSkewness
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check face angles
@@ -685,7 +695,7 @@ public:
                 (
                     const bool report = false,
                     const scalar maxSin = 10,    // In degrees
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check face warpage: decompose face and check ratio between
@@ -704,7 +714,7 @@ public:
                 (
                     const bool report,
                     const scalar reportDistSqr,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check edge length
@@ -712,14 +722,14 @@ public:
                 (
                     const bool report,
                     const scalar minLenSqr,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
                 //- Check for concave cells by the planes of faces
                 virtual bool checkConcaveCells
                 (
                     const bool report = false,
-                    labelHashSet* setPtr = NULL
+                    labelHashSet* setPtr = nullptr
                 ) const;
 
 
