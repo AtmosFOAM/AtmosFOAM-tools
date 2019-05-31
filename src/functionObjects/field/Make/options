@@ -30,4 +30,4 @@ LIB_LIBS = \
     -llagrangian \
     -lfileFormats \
     -lsampling \
-    -lsurfMesh
+    -lsurfMesh 
