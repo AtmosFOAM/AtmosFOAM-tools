@@ -2,6 +2,7 @@ BLturbulenceFields/frictionVelocity.C
 theta/theta.C
 BLturbulenceFields/turbulentLength.C
 TfromThetaExner/TfromThetaExner.C
+pFromThetaExner/pFromThetaExner.C
 vorticityF/vorticityF.C
 vorticity2D/vorticity2D.C
 
