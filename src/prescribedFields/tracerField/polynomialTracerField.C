@@ -36,7 +36,7 @@ polynomialTracerField::polynomialTracerField
     a_yzz(dict.lookupOrDefault<scalar>("a_yzz", scalar(0))),
     a_zzz(dict.lookupOrDefault<scalar>("a_zzz", scalar(0))),
     
-    polyMax(dict.lookupOrDefault<scalar>("polyMax", -GREAT)),
+    polyMax(dict.lookupOrDefault<scalar>("polyMax", GREAT)),
     polyMin(dict.lookupOrDefault<scalar>("polyMin", -GREAT))
 {};
 
