@@ -1,0 +1,21 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Web:      www.OpenFOAM.org
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+Description
+    Calculates the product of dtheta/dz and w when dtheta/dz < 0 and w>0
+
+\*---------------------------------------------------------------------------*/
+
+type    convection;
+libs    ("libAtmosFoamFieldFunctionObjects.so");
+fields  (b u);
+result  convection;
+executeControl  writeTime;
+writeControl    writeTime;
+
+// ************************************************************************* //
+

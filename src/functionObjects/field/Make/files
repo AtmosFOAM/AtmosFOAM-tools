@@ -1,3 +1,5 @@
+laplacian/laplacian.C
+convection/convection.C
 BLturbulenceFields/frictionVelocity.C
 theta/theta.C
 BLturbulenceFields/turbulentLength.C
@@ -5,5 +7,6 @@ TfromThetaExner/TfromThetaExner.C
 pFromThetaExner/pFromThetaExner.C
 vorticityF/vorticityF.C
 vorticity2D/vorticity2D.C
+dpdz/dpdz.C
 
 LIB = $(FOAM_USER_LIBBIN)/libAtmosFoamFieldFunctionObjects
