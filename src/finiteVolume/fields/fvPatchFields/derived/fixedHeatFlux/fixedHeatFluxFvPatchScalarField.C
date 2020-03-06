@@ -71,12 +71,12 @@ fixedHeatFluxFvPatchScalarField
         (
             scalarField("value", dict, p.size())
         );
-        gradient() = scalarField("gradient", dict, p.size());
+        //gradient() = scalarField("gradient", dict, p.size());
     }
     else
     {
         fvPatchField<scalar>::operator=(patchInternalField());
-        gradient() = 0.0;
+//        gradient() = 0.0;
     }
 }
 

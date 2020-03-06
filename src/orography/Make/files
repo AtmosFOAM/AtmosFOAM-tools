@@ -12,5 +12,6 @@ doubleConeMountain.C
 doubleCosineMountain.C
 doubleCylinderMountain.C
 terrainFollowingTransform.C
+sineWaveMountain.C
 
 LIB = $(FOAM_USER_LIBBIN)/liborography
