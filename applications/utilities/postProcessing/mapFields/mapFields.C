@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
         {
             FatalErrorInFunction
                 << "Unknown mapMethod " << mapMethod << ". Valid options are: "
-                << "mapNearest, interpolate and cellPointInterpolate"
+                << "cellVolumeWeight, mapNearest, interpolate and cellPointInterpolate"
                 << exit(FatalError);
         }
 
