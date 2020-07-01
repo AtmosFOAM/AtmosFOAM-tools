@@ -23,11 +23,24 @@ License
     Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 Application
-    Werrors
+    globalSum
 
 Description
-    Calculates the Williamson et al error measures based on differences between
-    target and reference solutions. Can use a subset of cells from a cellSet
+    Calculates various global sums. Can use a subset of cells from a cellSet. 
+    Output is in a file called "globalSum"+meshRegion+fieldName+".dat or
+    globalSum"+meshRegion+fieldName+".dat if the whole domain is used. 
+    The global sums are for the input variable T = fieldName
+    Each line
+    of the output file consists of 
+    time  L1 L2 Linf L0 variance min max
+    where L1 = 1/V int(|T| dV)
+          L2 = 1/V int(T^2 dV)
+          Li = max(|T|) over the domain
+          L0 = 1/V int(T dV)
+          variance = 1/V int((T - L0)^2 dV)
+          min = min(T) over the domain
+          max = max(T) over the domain
+    where V is the volume of the domain
 
 \*---------------------------------------------------------------------------*/
 
@@ -51,6 +64,25 @@ int main(int argc, char *argv[])
     argList::addOption
     (
         "cellSet", "cellSetName", "only calculate sums for a subset of cells"
+    );
+
+    argList::addNote
+    (
+        "Calculates various global sums. Can use a subset of cells from a cellSet.\n"
+        "Output is in a file called globalSum+meshRegion+fieldName+.dat or\n"
+        "globalSum+meshRegion+fieldName+.dat if the whole domain is used.\n"
+        "The global sums are for the input variable T = fieldName\n"
+        "Each line\n"
+        "of the output file consists of\n"
+        "time  L1 L2 Linf L0 variance min max\n"
+        "where L1 = 1/V int(|T| dV)\n"
+        "      L2 = 1/V int(T^2 dV)\n"
+        "      Li = max(|T|) over the domain\n"
+        "      L0 = 1/V int(T dV)\n"
+        "      variance = 1/V int((T - L0)^2 dV)\n"
+        "      min = min(T) over the domain\n"
+        "      max = max(T) over the domain\n"
+        "where V is the volume of the domain\n"
     );
 
 #   include "addTimeOptions.H"
