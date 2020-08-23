@@ -18,6 +18,7 @@ interpolation/surfaceInterpolation/schemes/biLinearUpwindFit/biLinearUpwindFit.C
 interpolation/surfaceInterpolation/limitedSchemes/TVDlimited/TVDlimited.C
 interpolation/surfaceInterpolation/limitedSchemes/smoothScheme/smoothScheme.C
 */
+interpolation/surfaceInterpolation/schemes/MPDATA/MPDATA.C
 interpolation/surfaceInterpolation/schemes/APVM/APVM.C
 interpolation/surfaceInterpolation/schemes/linearUpwindDebug/linearUpwindDebug.C
 interpolation/surfaceInterpolation/schemes/cubicUpwindCPCFit/cubicUpwindCPCFit.C
