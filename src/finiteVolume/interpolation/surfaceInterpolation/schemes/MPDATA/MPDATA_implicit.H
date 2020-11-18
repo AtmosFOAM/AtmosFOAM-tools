@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::MPDATA
+    Foam::MPDATA_implicit
 
 Description
     First apply explicit upwind interpolation to tracer T.
@@ -34,12 +34,12 @@ Description
     and apply upwinding again.
 
 SourceFiles
-    MPDATA.C
+    MPDATA_implicit.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_H
-#define MPDATA_H
+#ifndef MPDATA_implicit_H
+#define MPDATA_implicit_H
 
 #include "upwind.H"
 
@@ -49,18 +49,15 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA Declaration
+                           Class MPDATA_implicit Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA
+class MPDATA_implicit
 :
     public upwind<Type>
 {
     // Private Data
-
-        //- The MPDATA gauge value
-        const scalar gauge_;
 
         //- Reference to the surface flux used to choose upwind direction
         const surfaceScalarField& faceFlux_;
@@ -69,16 +66,16 @@ class MPDATA
     // Private Member Functions
 
         //- Disallow default bitwise copy construct
-        MPDATA(const MPDATA&);
+        MPDATA_implicit(const MPDATA_implicit&);
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA&);
+        void operator=(const MPDATA_implicit&);
 
 
 public:
 
     //- Runtime type information
-    TypeName("MPDATA");
+    TypeName("MPDATA_implicit");
 
 
     // Constructors
@@ -86,20 +83,19 @@ public:
         //- Construct from mesh and Istream
         //  The name of the flux field is read from the Istream and looked-up
         //  from the mesh objectRegistry
-        MPDATA(const fvMesh& mesh, Istream& is)
+        MPDATA_implicit(const fvMesh& mesh, Istream& is)
         :
             upwind<Type>
             (
                 mesh,
                 mesh.lookupObject<surfaceScalarField>(word(is))
             ),
-            gauge_(readScalar(is)),
             faceFlux_(upwind<Type>::faceFlux_)
         {}
 
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA
+        MPDATA_implicit
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -107,7 +103,6 @@ public:
         )
         :
             upwind<Type>(mesh, faceFlux),
-            gauge_(readScalar(is)),
             faceFlux_(faceFlux)
         {}
 

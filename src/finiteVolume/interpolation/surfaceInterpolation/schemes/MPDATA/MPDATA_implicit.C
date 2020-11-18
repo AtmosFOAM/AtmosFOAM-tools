@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "MPDATA.H"
+#include "MPDATA_implicit.H"
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
@@ -32,7 +32,7 @@ License
 
 template<class Type>
 Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
-Foam::MPDATA<Type>::correction
+Foam::MPDATA_implicit<Type>::correction
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
@@ -45,7 +45,7 @@ Foam::MPDATA<Type>::correction
         (
             IOobject
             (
-                "MPDATA::correction(" + vf.name() + ')',
+                "MPDATA_implicit::correction(" + vf.name() + ')',
                 mesh.time().timeName(),
                 mesh,
                 IOobject::NO_READ,
@@ -90,16 +90,14 @@ Foam::MPDATA<Type>::correction
         grad.gradf(Tf, "gradf")
     );
 
-    // Gauge Stabilisation
-    dimensionedScalar gauge
-         = dimensionedScalar("", Tf.dimensions(), gauge_);
-    Tf += max(gauge, dimensionedScalar("", Tf.dimensions(), SMALL));
+    // Stabilisation
+    Tf = max(Tf, dimensionedScalar("", Tf.dimensions(), SMALL));
 
     // Ante-diffusive flux
     surfaceScalarField anteD = 0.5/Tf*
     (
         mag(faceFlux_)*snGradT/rdelta
-      - faceFlux_*dt*(Uf & gradT)
+      + faceFlux_*dt*(Uf & gradT)
     );
     
     // Limit the anti-diffusive velocity so that Courant<0.5
@@ -122,7 +120,7 @@ Foam::MPDATA<Type>::correction
     // Correction
     upwind<Type> upwindAndteD(mesh, anteD);
     GeometricField<Type, fvsPatchField, surfaceMesh> sfCorrFlux
-         = upwindAndteD.interpolate(vf + gauge);
+         = upwindAndteD.interpolate(vf);
     sfCorr = sfCorrFlux*anteD/stabilise
     (
         faceFlux_,
@@ -135,9 +133,9 @@ Foam::MPDATA<Type>::correction
 
 namespace Foam
 {
-    //makeSurfaceInterpolationScheme(MPDATA)
-    makeSurfaceInterpolationTypeScheme(MPDATA, scalar)
-    //makeSurfaceInterpolationTypeScheme(MPDATA, vector)
+    //makeSurfaceInterpolationScheme(MPDATA_implicit)
+    makeSurfaceInterpolationTypeScheme(MPDATA_implicit, scalar)
+    //makeSurfaceInterpolationTypeScheme(MPDATA_implicit, vector)
 }
 
 // ************************************************************************* //

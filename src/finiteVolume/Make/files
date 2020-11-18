@@ -1,3 +1,6 @@
+convectionSchemes/fluxCorrectedTransport/fvcFluxLimit.C
+convectionSchemes/fluxCorrectedTransport/fluxCorrectedTransports.C
+convectionSchemes/CrankNicolsonConvection/CrankNicolsonConvections.C
 interpolation/approxTypes/approxType.C
 fvc/fvcCurlf.C
 fvc/fvcCof.C
@@ -19,6 +22,7 @@ interpolation/surfaceInterpolation/limitedSchemes/TVDlimited/TVDlimited.C
 interpolation/surfaceInterpolation/limitedSchemes/smoothScheme/smoothScheme.C
 */
 interpolation/surfaceInterpolation/schemes/MPDATA/MPDATA.C
+interpolation/surfaceInterpolation/schemes/MPDATA/MPDATA_implicit.C
 interpolation/surfaceInterpolation/schemes/APVM/APVM.C
 interpolation/surfaceInterpolation/schemes/linearUpwindDebug/linearUpwindDebug.C
 interpolation/surfaceInterpolation/schemes/cubicUpwindCPCFit/cubicUpwindCPCFit.C
