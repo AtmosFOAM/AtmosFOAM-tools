@@ -43,6 +43,98 @@ namespace fv
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class Type>
+void MPDATA<Type>::calculateAnteD
+(
+    const surfaceScalarField& faceFlux,
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    const implicitExplicit& IE
+) const
+{
+    // Reference to the mesh, time step and mesh spacing
+    const fvMesh& mesh = this->mesh();
+    const dimensionedScalar& dt = mesh.time().deltaT();
+    const surfaceScalarField& rdelta = mesh.deltaCoeffs();
+
+    // Calculate necessary additional fields for the correction
+    // The full velocity field from the flux
+    //volVectorField u = fvc::reconstruct(faceFlux);
+    surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
+    Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
+
+    // The volume field interpolated onto faces
+    GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
+
+    // The surface normal gradient and the guass gradient interpolated to faces
+    fv::uncorrectedSnGrad<Type> snGrad(mesh);
+    GeometricField<Type, fvsPatchField, surfaceMesh> snGradT
+         = snGrad.snGrad(vf);
+
+    fv::gaussGrad<Type> grad(mesh);
+    const GeometricField
+    <
+        typename outerProduct<vector, Type>::type,
+        fvsPatchField,
+        surfaceMesh
+    > gradT = linearInterpolate
+    (
+        grad.gradf(Tf, "gradf")
+    );
+
+    // Gauge Stabilisation
+    gauge().dimensions() = Tf.dimensions();
+    Tf += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
+
+    // Smooth by increasing Tf for implicit advection
+    if (IE == IMPLICIT)
+    {
+        //volScalarField minT = dt*mag(u & (grad.gradf(Tf, "gradf")));
+        //volScalarField minT = dt*mag(upwindConvect().fvcDiv(faceFlux, vf));
+    
+        surfaceScalarField minTf = mag//max
+        (
+            //linearInterpolate(minT),
+            2*dt/mesh.magSf()*
+            (
+                mag(faceFlux)*snGradT
+              + faceFlux*dt*(Uf & gradT)*rdelta
+            )
+        );
+        
+        Tf += minTf;
+    
+        Tf.rename("Tf");
+        Tf.write();
+
+        // ante-diffusive flux for implicit advection
+        anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta
+                + 0.5/Tf*faceFlux*dt*(Uf & gradT);
+    }
+
+    // Limit the anti-diffusive velocity so that Courant<0.5
+    if (IE == EXPLICIT)
+    {
+        // Ante-diffusive flux for explicit
+        anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta
+                - 0.5/Tf*faceFlux*dt*(Uf & gradT);
+
+        surfaceScalarField CoLim = 0.25*mesh.magSf()/rdelta/dt;
+        anteD() = min(anteD(), CoLim);
+        anteD() = max(anteD(), -CoLim);
+    } 
+
+    // Ante-diffusive velocity recontruct and then interpolate to smooth
+    word Vname = IE == EXPLICIT? "anteDVe" : "anteDVi";
+    volVectorField V(Vname, fvc::reconstruct(anteD()));
+    anteD() = linearInterpolate(V) & mesh.Sf();
+
+    // Write out the ante-diffusive velocity if needed
+    if (mesh.time().writeTime())
+    {
+        V.write();
+    }
+}
+
+template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
 MPDATA<Type>::interpolate
 (
@@ -83,6 +175,30 @@ MPDATA<Type>::fvmDiv
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
+    // Reference to the mesh, time step and mesh spacing
+    const fvMesh& mesh = this->mesh();
+    const dimensionedScalar& dt = mesh.time().deltaT();
+    const surfaceScalarField& rdelta = mesh.deltaCoeffs();
+
+    // Separate faceFlux into explicit and implicitly solved parts
+    surfaceScalarField fluxSmall = 0*faceFlux;
+    surfaceScalarField fluxBig = faceFlux;
+    if (maxCoExp_>0)
+    {
+        fluxSmall = faceFlux;
+        fluxBig *= 0;
+    
+        surfaceScalarField fluxLimit = 0.5*maxCoExp_*mesh.magSf()/rdelta/dt;
+        forAll(faceFlux, faceI)
+        {
+            if (mag(faceFlux[faceI]) > fluxLimit[faceI])
+            {
+                fluxSmall[faceI] = sign(faceFlux[faceI])*fluxLimit[faceI];
+                fluxBig[faceI] = faceFlux[faceI] - fluxSmall[faceI];
+            }
+        }
+    }
+
     // Matrix to be returned will only have a source term
     tmp<fvMatrix<Type>> tfvm
     (
@@ -94,25 +210,52 @@ MPDATA<Type>::fvmDiv
     );
     fvMatrix<Type>& fvm = tfvm.ref();
     
-    // Reference to the mesh, time step and mesh spacing
-    const fvMesh& mesh = this->mesh();
-    const dimensionedScalar& dt = mesh.time().deltaT();
-    //const surfaceScalarField& rdelta = mesh.deltaCoeffs();
-
     // Create temporary field to advect
-    GeometricField<Type, fvPatchField, volMesh> vfT = vf;
+    GeometricField<Type, fvPatchField, volMesh> T = vf;
     
     // Create and solve the advection equation for the low order scheme
-    EulerDdtScheme<Type> backwardEuler(mesh);
+    // explicit then implicit
+    if (maxCoExp_>0)
+    {
+        // Put the low order explicit advection on the RHS
+        fvm += upwindConvect().fvcDiv(fluxSmall, T);
+        T.oldTime() -= dt*upwindConvect().fvcDiv(fluxSmall, T);
+    }
+    
+    // implicit low order part to update T from T.oldTime()
+    EulerDdtScheme<Type> backwardEuler(this->mesh());
     fvMatrix<Type> fvmT
     (
-        backwardEuler.fvmDdt(vfT)
-      + upwindConvect().fvmDiv(faceFlux, vfT)
+        backwardEuler.fvmDdt(T)
+      + upwindConvect().fvmDiv(fluxBig, T)
     );
     fvmT.solve();
     
-    // Put all the divergence in the RHS
-    fvm += upwindConvect().fvcDiv(faceFlux, vfT);
+    // Put the low order implicit divergence on the RHS of the matrix
+    fvm += upwindConvect().fvcDiv(fluxBig, T);
+    
+    // Next calcualte the correction for the explicit part
+    // Calculate the anti-diffusive flux for the explict part
+    if (maxCoExp_>0)
+    {
+        calculateAnteD(fluxSmall, vf, EXPLICIT);
+
+        // Add the explicit MPDATA correction to the RHS
+        fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
+    }
+    
+    // The advection equation for the imlicit high order correction
+    T.oldTime() = T;
+    calculateAnteD(fluxBig, vf, IMPLICIT);
+    fvmT = fvMatrix<Type>
+    (
+        backwardEuler.fvmDdt(T)
+      + anteDConvect().fvmDiv(anteD(), T)
+    );
+    fvmT.solve();
+
+    // Add the implicit MPDATA correction to the RHS
+    fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
 
     return tfvm;
 }
@@ -126,60 +269,9 @@ MPDATA<Type>::fvcDiv
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
-    // Reference to the mesh, time step and mesh spacing
-    const fvMesh& mesh = this->mesh();
-    const dimensionedScalar& dt = mesh.time().deltaT();
-    const surfaceScalarField& rdelta = mesh.deltaCoeffs();
+    const dimensionedScalar& dt = this->mesh().time().deltaT();
 
-    // Calculate necessary additional fields for the correction
-    // The full velocity field from the flux
-    surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
-    Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
-
-    // The volume field interpolated onto faces
-    GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
-
-    // The surface normal gradient and the guass gradient interpolated to faces
-    fv::uncorrectedSnGrad<Type> snGrad(mesh);
-    GeometricField<Type, fvsPatchField, surfaceMesh> snGradT
-         = snGrad.snGrad(vf);
-
-    fv::gaussGrad<Type> grad(mesh);
-    const GeometricField
-    <
-        typename outerProduct<vector, Type>::type,
-        fvsPatchField,
-        surfaceMesh
-    > gradT = linearInterpolate
-    (
-        grad.gradf(Tf, "gradf")
-    );
-
-    // Gauge Stabilisation
-    dimensionedScalar gauge("gauge", Tf.dimensions(), max(gauge_, SMALL));
-    Tf += gauge;
-
-    // Ante-diffusive flux
-    surfaceScalarField anteD = 0.5/Tf*
-    (
-        mag(faceFlux)*snGradT/rdelta
-      - faceFlux*dt*(Uf & gradT)
-    );
-
-    // Limit the anti-diffusive velocity so that Courant<0.5
-    surfaceScalarField CoLim = 0.25*mesh.magSf()/rdelta/dt;
-    anteD = min(anteD, CoLim);
-    anteD = max(anteD, -CoLim);
-    
-    // Ante-diffusive velocity recontruct and then interpolate to smooth
-    volVectorField V("anteDV", fvc::reconstruct(anteD));
-    anteD = linearInterpolate(V) & mesh.Sf();
-
-    // Write out the ante-diffusive velocity if needed
-    if (mesh.time().writeTime())
-    {
-        V.write();
-    }
+    calculateAnteD(faceFlux, vf, EXPLICIT);
     
     // Advect the volume field first with upwind and then the correction
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
@@ -189,8 +281,7 @@ MPDATA<Type>::fvcDiv
 
     GeometricField<Type, fvPatchField, volMesh> T = vf - dt*tConvection();
     
-    upwind<Type> upwindAndteD(mesh, anteD);
-    tConvection.ref() += fvc::div(anteD*upwindAndteD.interpolate(T));
+    tConvection.ref() += anteDConvect().fvcDiv(anteD(), T+gauge());
 
     tConvection.ref().rename
     (

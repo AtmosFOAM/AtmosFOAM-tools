@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "MPDATA.H"
+#include "MPDATA_explicit.H"
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
@@ -32,7 +32,7 @@ License
 
 template<class Type>
 Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
-Foam::MPDATA<Type>::correction
+Foam::MPDATA_explicit<Type>::correction
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
@@ -45,7 +45,7 @@ Foam::MPDATA<Type>::correction
         (
             IOobject
             (
-                "MPDATA::correction(" + vf.name() + ')',
+                "MPDATA_explicit::correction(" + vf.name() + ')',
                 mesh.time().timeName(),
                 mesh,
                 IOobject::NO_READ,
@@ -135,9 +135,9 @@ Foam::MPDATA<Type>::correction
 
 namespace Foam
 {
-    //makeSurfaceInterpolationScheme(MPDATA)
-    makeSurfaceInterpolationTypeScheme(MPDATA, scalar)
-    //makeSurfaceInterpolationTypeScheme(MPDATA, vector)
+    //makeSurfaceInterpolationScheme(MPDATA_explicit)
+    makeSurfaceInterpolationTypeScheme(MPDATA_explicit, scalar)
+    //makeSurfaceInterpolationTypeScheme(MPDATA_explicit, vector)
 }
 
 // ************************************************************************* //

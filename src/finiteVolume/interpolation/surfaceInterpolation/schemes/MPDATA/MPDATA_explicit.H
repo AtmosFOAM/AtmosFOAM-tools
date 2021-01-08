@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::MPDATA
+    Foam::MPDATA_explicit
 
 Description
     First apply explicit upwind interpolation to tracer T.
@@ -34,12 +34,12 @@ Description
     and apply upwinding again.
 
 SourceFiles
-    MPDATA.C
+    MPDATA_explicit.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_H
-#define MPDATA_H
+#ifndef MPDATA_explicit_H
+#define MPDATA_explicit_H
 
 #include "upwind.H"
 
@@ -49,17 +49,17 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA Declaration
+                           Class MPDATA_explicit Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA
+class MPDATA_explicit
 :
     public upwind<Type>
 {
     // Private Data
 
-        //- The MPDATA gauge value
+        //- The MPDATA_explicit gauge value
         const scalar gauge_;
 
         //- Reference to the surface flux used to choose upwind direction
@@ -69,16 +69,16 @@ class MPDATA
     // Private Member Functions
 
         //- Disallow default bitwise copy construct
-        MPDATA(const MPDATA&);
+        MPDATA_explicit(const MPDATA_explicit&);
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA&);
+        void operator=(const MPDATA_explicit&);
 
 
 public:
 
     //- Runtime type information
-    TypeName("MPDATA");
+    TypeName("MPDATA_explicit");
 
 
     // Constructors
@@ -86,7 +86,7 @@ public:
         //- Construct from mesh and Istream
         //  The name of the flux field is read from the Istream and looked-up
         //  from the mesh objectRegistry
-        MPDATA(const fvMesh& mesh, Istream& is)
+        MPDATA_explicit(const fvMesh& mesh, Istream& is)
         :
             upwind<Type>
             (
@@ -99,7 +99,7 @@ public:
 
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA
+        MPDATA_explicit
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,

@@ -60,17 +60,32 @@ class MPDATA
 {
     // Private Data
 
-        //- Off Centering
-        scalar gauge_;
+        //- Pointer to the MPDATA gauge (minimum allowed value)
+        mutable dimensionedScalar* gaugePtr_;
         
+        //- Maximum Courant number for explicit advection
+        scalar maxCoExp_;
+        
+        //- ante-diffusive flux
+        mutable surfaceScalarField* anteDPtr_;
+
         //- upwind interpolation
         tmp<gaussConvectionScheme<Type>> tupwindConvection_;
+        
+        //- upwind interpolation using ante-diffusive flux
+        tmp<gaussConvectionScheme<Type>> tanteDConvect_;
 
 public:
 
     //- Runtime type information
     TypeName("MPDATA");
 
+    //- Flags for implicit or explicit
+    enum implicitExplicit
+    {
+        IMPLICIT,
+        EXPLICIT
+    };
 
     // Constructors
 
@@ -79,11 +94,14 @@ public:
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
-            scalar gauge__
+            scalar gauge__ = 0,
+            scalar maxCoExp__ = 1
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
-            gauge_(gauge__),
+            gaugePtr_(new dimensionedScalar("gauge", dimless, gauge__)),
+            maxCoExp_(maxCoExp__),
+            anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
                 tmp<gaussConvectionScheme<Type>>
@@ -95,6 +113,21 @@ public:
                         tmp<surfaceInterpolationScheme<Type>>
                         (
                             new upwind<Type>(mesh, faceFlux)
+                        )
+                    )
+                )
+            ),
+            tanteDConvect_
+            (
+                tmp<gaussConvectionScheme<Type>>
+                (
+                    new gaussConvectionScheme<Type>
+                    (
+                        mesh,
+                        anteD(),
+                        tmp<surfaceInterpolationScheme<Type>>
+                        (
+                            new upwind<Type>(mesh, anteD())
                         )
                     )
                 )
@@ -110,7 +143,9 @@ public:
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
-            gauge_(readScalar(is)),
+            gaugePtr_(new dimensionedScalar("gauge", dimless, readScalar(is))),
+            maxCoExp_(readScalar(is)),
+            anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
                 tmp<gaussConvectionScheme<Type>>
@@ -125,12 +160,32 @@ public:
                         )
                     )
                 )
+            ),
+            tanteDConvect_
+            (
+                tmp<gaussConvectionScheme<Type>>
+                (
+                    new gaussConvectionScheme<Type>
+                    (
+                        mesh,
+                        anteD(),
+                        tmp<surfaceInterpolationScheme<Type>>
+                        (
+                            new upwind<Type>(mesh, anteD())
+                        )
+                    )
+                )
             )
         {
-            if (gauge_ < 0)
+            if (gauge().value() < 0)
             {
                 FatalErrorIn("MPDATA::MPDATA") << " gauge must be >=0 but "
-                    << gauge_ << " was given\n" << exit(FatalError);
+                    << gauge().value() << " was given\n" << exit(FatalError);
+            }
+            if (maxCoExp_ < 0)
+            {
+                FatalErrorIn("MPDATA::MPDATA") << " maxCoExp must be >=0 but "
+                    << maxCoExp_ << " was given\n" << exit(FatalError);
             }
         }
 
@@ -140,11 +195,31 @@ public:
 
     // Member Functions
     
+        // The gauge as a dimensionedScalar (the MPDATA minimum allowed value)
+        dimensionedScalar& gauge() const { return *gaugePtr_; }
+    
+        // Return the ante-diffusive flux
+        surfaceScalarField& anteD() const { return *anteDPtr_; }
+    
         //- Access to upwind convection scheme
         const gaussConvectionScheme<Type>& upwindConvect() const
         {
             return tupwindConvection_();
         }
+
+        //- Access to anti-diffusive convection scheme
+        const gaussConvectionScheme<Type>& anteDConvect() const
+        {
+            return tanteDConvect_();
+        }
+        
+        //- Calculate the anti-diffusive flux
+        void calculateAnteD
+        (
+            const surfaceScalarField& faceFlux,
+            const GeometricField<Type, fvPatchField, volMesh>& vf,
+            const implicitExplicit& IE
+        ) const;
 
         tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> interpolate
         (
@@ -158,6 +233,7 @@ public:
             const GeometricField<Type, fvPatchField, volMesh>&
         ) const;
 
+        // The part of the advection with Co>maxCoExp_ is solved implicitly
         tmp<fvMatrix<Type>> fvmDiv
         (
             const surfaceScalarField&,
