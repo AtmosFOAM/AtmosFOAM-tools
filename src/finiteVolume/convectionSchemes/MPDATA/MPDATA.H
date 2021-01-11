@@ -66,6 +66,9 @@ class MPDATA
         //- Maximum Courant number for explicit advection
         scalar maxCoExp_;
         
+        //- Scaling for implicit high order correction
+        scalar implicitCorrection_;
+        
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
 
@@ -95,12 +98,14 @@ public:
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
             scalar gauge__ = 0,
-            scalar maxCoExp__ = 1
+            scalar maxCoExp__ = 1,
+            scalar implicitCorrection__ = 1
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
             gaugePtr_(new dimensionedScalar("gauge", dimless, gauge__)),
             maxCoExp_(maxCoExp__),
+            implicitCorrection_(implicitCorrection__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -145,6 +150,7 @@ public:
             convectionScheme<Type>(mesh, faceFlux),
             gaugePtr_(new dimensionedScalar("gauge", dimless, readScalar(is))),
             maxCoExp_(readScalar(is)),
+            implicitCorrection_(readScalar(is)),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -186,6 +192,12 @@ public:
             {
                 FatalErrorIn("MPDATA::MPDATA") << " maxCoExp must be >=0 but "
                     << maxCoExp_ << " was given\n" << exit(FatalError);
+            }
+            if (implicitCorrection_ < 0 || implicitCorrection_ > 1)
+            {
+                FatalErrorIn("MPDATA::MPDATA")
+                    << " implicitCorrection_ must be between 0 and 1 but "
+                    << implicitCorrection_ << " was given\n" << exit(FatalError);
             }
         }
 

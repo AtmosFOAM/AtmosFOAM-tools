@@ -57,7 +57,6 @@ void MPDATA<Type>::calculateAnteD
 
     // Calculate necessary additional fields for the correction
     // The full velocity field from the flux
-    //volVectorField u = fvc::reconstruct(faceFlux);
     surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
     Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
@@ -84,48 +83,43 @@ void MPDATA<Type>::calculateAnteD
     gauge().dimensions() = Tf.dimensions();
     Tf += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
 
+    int IEalpha = IE == EXPLICIT ? -1 : 1;
+
     // Smooth by increasing Tf for implicit advection
-    if (IE == IMPLICIT)
+    //if (IE == IMPLICIT)
     {
-        //volScalarField minT = dt*mag(u & (grad.gradf(Tf, "gradf")));
-        //volScalarField minT = dt*mag(upwindConvect().fvcDiv(faceFlux, vf));
-    
-        surfaceScalarField minTf = mag//max
+        surfaceScalarField minTf = 2*dt/mesh.magSf()*mag
         (
-            //linearInterpolate(minT),
-            2*dt/mesh.magSf()*
-            (
-                mag(faceFlux)*snGradT
-              + faceFlux*dt*(Uf & gradT)*rdelta
-            )
+            mag(faceFlux)*snGradT
+          + IEalpha*faceFlux*dt*(Uf & gradT)*rdelta
         );
         
-        Tf += minTf;
-    
-        Tf.rename("Tf");
-        Tf.write();
+        Tf = max(Tf,minTf);
 
         // ante-diffusive flux for implicit advection
-        anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta
-                + 0.5/Tf*faceFlux*dt*(Uf & gradT);
+        anteD() = 0.5/Tf*
+        (
+            mag(faceFlux)*snGradT/rdelta
+         + IEalpha*faceFlux*dt*(Uf & gradT)
+        );
     }
 
-    // Limit the anti-diffusive velocity so that Courant<0.5
-    if (IE == EXPLICIT)
-    {
-        // Ante-diffusive flux for explicit
-        anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta
-                - 0.5/Tf*faceFlux*dt*(Uf & gradT);
+//    // Limit the anti-diffusive velocity so that Courant<0.5
+//    if (IE == EXPLICIT)
+//    {
+//        // Ante-diffusive flux for explicit
+//        anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta
+//                - 0.5/Tf*faceFlux*dt*(Uf & gradT);
 
-        surfaceScalarField CoLim = 0.25*mesh.magSf()/rdelta/dt;
-        anteD() = min(anteD(), CoLim);
-        anteD() = max(anteD(), -CoLim);
-    } 
+//        surfaceScalarField CoLim = 0.25*mesh.magSf()/rdelta/dt;
+//        anteD() = min(anteD(), CoLim);
+//        anteD() = max(anteD(), -CoLim);
+//    } 
 
     // Ante-diffusive velocity recontruct and then interpolate to smooth
     word Vname = IE == EXPLICIT? "anteDVe" : "anteDVi";
     volVectorField V(Vname, fvc::reconstruct(anteD()));
-    anteD() = linearInterpolate(V) & mesh.Sf();
+//    anteD() = linearInterpolate(V) & mesh.Sf();
 
     // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
@@ -193,8 +187,8 @@ MPDATA<Type>::fvmDiv
         {
             if (mag(faceFlux[faceI]) > fluxLimit[faceI])
             {
-                fluxSmall[faceI] = sign(faceFlux[faceI])*fluxLimit[faceI];
-                fluxBig[faceI] = faceFlux[faceI] - fluxSmall[faceI];
+                fluxSmall[faceI] = 0;
+                fluxBig[faceI] = faceFlux[faceI];
             }
         }
     }
@@ -223,6 +217,7 @@ MPDATA<Type>::fvmDiv
     }
     
     // implicit low order part to update T from T.oldTime()
+    T = T.oldTime();
     EulerDdtScheme<Type> backwardEuler(this->mesh());
     fvMatrix<Type> fvmT
     (
@@ -244,18 +239,21 @@ MPDATA<Type>::fvmDiv
         fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
     }
     
-    // The advection equation for the imlicit high order correction
-    T.oldTime() = T;
-    calculateAnteD(fluxBig, vf, IMPLICIT);
-    fvmT = fvMatrix<Type>
-    (
-        backwardEuler.fvmDdt(T)
-      + anteDConvect().fvmDiv(anteD(), T)
-    );
-    fvmT.solve();
+    if (implicitCorrection_ > 0)
+    {
+        // The advection equation for the imlicit high order correction
+        calculateAnteD(fluxBig, T, IMPLICIT);
+//        T.oldTime() = T;
+//        fvmT = fvMatrix<Type>
+//        (
+//            backwardEuler.fvmDdt(T)
+//          + anteDConvect().fvmDiv(implicitCorrection_*anteD(), T)
+//        );
+//        fvmT.solve();
 
-    // Add the implicit MPDATA correction to the RHS
-    fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
+        // Add the implicit MPDATA correction to the RHS
+        fvm += anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
+    }
 
     return tfvm;
 }
