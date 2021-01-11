@@ -204,20 +204,34 @@ MPDATA<Type>::fvmDiv
     );
     fvMatrix<Type>& fvm = tfvm.ref();
     
-    // Create temporary field to advect
+    // Create temporary field to advect and the temporary divergence field
     GeometricField<Type, fvPatchField, volMesh> T = vf;
     
-    // Create and solve the advection equation for the low order scheme
-    // explicit then implicit
+    // The temporary divergence field is initialised as the explicit divergence
+    GeometricField<Type, fvPatchField, volMesh> div = fvcDiv(fluxSmall, vf);
+    
+    // First apply the explicit part
     if (maxCoExp_>0)
     {
-        // Put the low order explicit advection on the RHS
-        fvm += upwindConvect().fvcDiv(fluxSmall, T);
-        T.oldTime() -= dt*upwindConvect().fvcDiv(fluxSmall, T);
+        // Add the explicit MPDATA correction to the RHS
+        fvm += div;
+        T -= dt*div;
     }
     
+    // Next calculate and apply the correction for the implicit part
+    if (implicitCorrection_ > 0)
+    {
+        // The advection equation for the imlicit high order correction
+        calculateAnteD(fluxBig, vf, IMPLICIT);
+
+        // Add the implicit MPDATA correction to the RHS
+        div = anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
+        fvm += div;
+        T -= dt*div;
+    }
+
     // implicit low order part to update T from T.oldTime()
-    T = T.oldTime();
+    T.oldTime() = T;
     EulerDdtScheme<Type> backwardEuler(this->mesh());
     fvMatrix<Type> fvmT
     (
@@ -225,36 +239,9 @@ MPDATA<Type>::fvmDiv
       + upwindConvect().fvmDiv(fluxBig, T)
     );
     fvmT.solve();
-    
     // Put the low order implicit divergence on the RHS of the matrix
     fvm += upwindConvect().fvcDiv(fluxBig, T);
     
-    // Next calcualte the correction for the explicit part
-    // Calculate the anti-diffusive flux for the explict part
-    if (maxCoExp_>0)
-    {
-        calculateAnteD(fluxSmall, vf, EXPLICIT);
-
-        // Add the explicit MPDATA correction to the RHS
-        fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
-    }
-    
-    if (implicitCorrection_ > 0)
-    {
-        // The advection equation for the imlicit high order correction
-        calculateAnteD(fluxBig, T, IMPLICIT);
-//        T.oldTime() = T;
-//        fvmT = fvMatrix<Type>
-//        (
-//            backwardEuler.fvmDdt(T)
-//          + anteDConvect().fvmDiv(implicitCorrection_*anteD(), T)
-//        );
-//        fvmT.solve();
-
-        // Add the implicit MPDATA correction to the RHS
-        fvm += anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
-    }
-
     return tfvm;
 }
 
