@@ -60,7 +60,7 @@ void MPDATA<Type>::calculateAnteD
     // The full velocity field from the flux
     downwind<vector> dInterp(mesh,faceFlux);
     surfaceVectorField Uf = dInterp.interpolate(fvc::reconstruct(faceFlux));
-    Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
+    //Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
     // The volume field interpolated onto faces
     GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
@@ -121,7 +121,7 @@ void MPDATA<Type>::calculateAnteD
     // Ante-diffusive velocity recontruct and then interpolate to smooth
     word Vname = IE == EXPLICIT? "anteDVe" : "anteDVi";
     volVectorField V(Vname, fvc::reconstruct(anteD()));
-//    anteD() = linearInterpolate(V) & mesh.Sf();
+    anteD() = linearInterpolate(V) & mesh.Sf();
 
     // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
@@ -209,29 +209,14 @@ MPDATA<Type>::fvmDiv
     // Create temporary field to advect and the temporary divergence field
     GeometricField<Type, fvPatchField, volMesh> T = vf;
     
-    // The temporary divergence field is initialised as the explicit divergence
-    GeometricField<Type, fvPatchField, volMesh> div = fvcDiv(fluxSmall, vf);
-    
-    // First apply the explicit part
+    // First apply the low-order explicit part
     if (maxCoExp_>0)
     {
         // Add the explicit MPDATA correction to the RHS
-        fvm += div;
-        T -= dt*div;
+        fvm += upwindConvect().fvcDiv(fluxSmall, T);
+        T -= dt*upwindConvect().fvcDiv(fluxSmall, T);
     }
     
-    // Next calculate and apply the correction for the implicit part
-    if (implicitCorrection_ > 0)
-    {
-        // The advection equation for the imlicit high order correction
-        calculateAnteD(fluxBig, vf, IMPLICIT);
-
-        // Add the implicit MPDATA correction to the RHS
-        div = anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
-        fvm += div;
-        T -= dt*div;
-    }
-
     // implicit low order part to update T from T.oldTime()
     T.oldTime() = T;
     EulerDdtScheme<Type> backwardEuler(this->mesh());
@@ -241,8 +226,28 @@ MPDATA<Type>::fvmDiv
       + upwindConvect().fvmDiv(fluxBig, T)
     );
     fvmT.solve();
+    
     // Put the low order implicit divergence on the RHS of the matrix
     fvm += upwindConvect().fvcDiv(fluxBig, T);
+    
+    // Next calculate and apply the correction for the implicit part
+    if (implicitCorrection_ > 0)
+    {
+        // The advection equation for the imlicit high order correction
+        calculateAnteD(fluxBig, T, IMPLICIT);
+
+        // Add the implicit MPDATA correction to the RHS
+        fvm += anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
+    }
+
+    // Finall calculate and apply the correction for the explicit part
+    if (maxCoExp_>0)
+    {
+        calculateAnteD(fluxSmall, vf, EXPLICIT);
+
+        // Add the explicit MPDATA correction to the RHS
+        fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
+    }
     
     return tfvm;
 }
