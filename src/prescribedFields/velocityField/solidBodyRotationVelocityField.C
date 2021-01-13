@@ -64,7 +64,7 @@ point solidBodyRotationVelocityField::initialPositionOf
 ) const
 {
     // rotation matrix
-    tensor R = Ra(rotation_, -mag(rotation_)*t.value());
+    tensor R = Ra(rotation_/mag(rotation_), 2*mag(rotation_)*t.value());
     
     return (R & (p - centre_)) + centre_;
 }

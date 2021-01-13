@@ -29,6 +29,7 @@ License
 #include "EulerDdtScheme.H"
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
+#include "downwind.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,7 +58,8 @@ void MPDATA<Type>::calculateAnteD
 
     // Calculate necessary additional fields for the correction
     // The full velocity field from the flux
-    surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
+    downwind<vector> dInterp(mesh,faceFlux);
+    surfaceVectorField Uf = dInterp.interpolate(fvc::reconstruct(faceFlux));
     Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
     // The volume field interpolated onto faces
