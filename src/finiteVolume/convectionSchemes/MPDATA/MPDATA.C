@@ -29,7 +29,8 @@ License
 #include "EulerDdtScheme.H"
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
-#include "downwind.H"
+#include "CourantNoFunc.H"
+//#include "downwind.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,8 +59,8 @@ void MPDATA<Type>::calculateAnteD
 
     // Calculate necessary additional fields for the correction
     // The full velocity field from the flux
-    downwind<vector> dInterp(mesh,faceFlux);
-    surfaceVectorField Uf = dInterp.interpolate(fvc::reconstruct(faceFlux));
+    //downwind<vector> dInterp(mesh,faceFlux);
+    surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
     //Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
     // The volume field interpolated onto faces
@@ -71,7 +72,7 @@ void MPDATA<Type>::calculateAnteD
          = snGrad.snGrad(vf);
 
     fv::gaussGrad<Type> grad(mesh);
-    const GeometricField
+    GeometricField
     <
         typename outerProduct<vector, Type>::type,
         fvsPatchField,
@@ -80,6 +81,8 @@ void MPDATA<Type>::calculateAnteD
     (
         grad.gradf(Tf, "gradf")
     );
+    //gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
+    //     * mesh.Sf()/mesh.magSf();
 
     // Gauge Stabilisation
     gauge().dimensions() = Tf.dimensions();
@@ -96,7 +99,9 @@ void MPDATA<Type>::calculateAnteD
           + IEalpha*faceFlux*dt*(Uf & gradT)*rdelta
         );
         
-        Tf = max(Tf,minTf);
+        //Tf = max(Tf,minTf);
+        //Tf += minTf;
+        Tf = sqrt(sqr(Tf) + sqr(minTf));
 
         // ante-diffusive flux for implicit advection
         anteD() = 0.5/Tf*
@@ -209,14 +214,29 @@ MPDATA<Type>::fvmDiv
     // Create temporary field to advect and the temporary divergence field
     GeometricField<Type, fvPatchField, volMesh> T = vf;
     
-    // First apply the low-order explicit part
+    // The temporary divergence field is initialised as the explicit divergence
+    GeometricField<Type, fvPatchField, volMesh> div = fvcDiv(fluxSmall, vf);
+    
+    // First apply the explicit part
     if (maxCoExp_>0)
     {
         // Add the explicit MPDATA correction to the RHS
-        fvm += upwindConvect().fvcDiv(fluxSmall, T);
-        T -= dt*upwindConvect().fvcDiv(fluxSmall, T);
+        fvm += div;
+        T -= dt*div;
     }
     
+    // Next calculate and apply the correction for the implicit part
+    if (implicitCorrection_ > 0)
+    {
+        // The advection equation for the imlicit high order correction
+        calculateAnteD(fluxBig, vf, IMPLICIT);
+
+        // Add the implicit MPDATA correction to the RHS
+        div = anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
+        fvm += div;
+        T -= dt*div;
+    }
+
     // implicit low order part to update T from T.oldTime()
     T.oldTime() = T;
     EulerDdtScheme<Type> backwardEuler(this->mesh());
@@ -226,27 +246,23 @@ MPDATA<Type>::fvmDiv
       + upwindConvect().fvmDiv(fluxBig, T)
     );
     fvmT.solve();
-    
     // Put the low order implicit divergence on the RHS of the matrix
     fvm += upwindConvect().fvcDiv(fluxBig, T);
     
-    // Next calculate and apply the correction for the implicit part
+    // Re-calculate and apply the correction
     if (implicitCorrection_ > 0)
     {
-        // The advection equation for the imlicit high order correction
+        // Save the old flux
+        surfaceScalarField oldCorr = anteD();
+        // Re-calculate the correction
         calculateAnteD(fluxBig, T, IMPLICIT);
+        anteD() -= oldCorr;
+        
+        surfaceScalarField c = linearInterpolate(CourantNo(fluxBig, dt));
+        c = sqr(min(1/(c+SMALL), dimensionedScalar("",dimless, scalar(1))));
+        anteD() = c*anteD();
 
-        // Add the implicit MPDATA correction to the RHS
         fvm += anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
-    }
-
-    // Finall calculate and apply the correction for the explicit part
-    if (maxCoExp_>0)
-    {
-        calculateAnteD(fluxSmall, vf, EXPLICIT);
-
-        // Add the explicit MPDATA correction to the RHS
-        fvm += anteDConvect().fvcDiv(anteD(), T+gauge());
     }
     
     return tfvm;
@@ -263,22 +279,42 @@ MPDATA<Type>::fvcDiv
 {
     const dimensionedScalar& dt = this->mesh().time().deltaT();
 
-    calculateAnteD(faceFlux, vf, EXPLICIT);
-    
-    // Advect the volume field first with upwind and then the correction
+    // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
     (
         upwindConvect().fvcDiv(faceFlux, vf)
     );
 
-    GeometricField<Type, fvPatchField, volMesh> T = vf - dt*tConvection();
-    
-    tConvection.ref() += anteDConvect().fvcDiv(anteD(), T+gauge());
-
     tConvection.ref().rename
     (
         "convection(" + faceFlux.name() + ',' + vf.name() + ')'
     );
+
+    // Store the original and upwind advected tracer
+    GeometricField<Type, fvPatchField, volMesh> T = vf - dt*tConvection();
+    
+    // Apply the correction
+    calculateAnteD(faceFlux, vf, EXPLICIT);
+
+//    // corrections half old and new
+//    surfaceScalarField corr1 = anteD();
+//    T.oldTime() = T - dt*anteDConvect().fvcDiv(anteD(), T+gauge());
+
+//    calculateAnteD(faceFlux, T.oldTime(), EXPLICIT);
+//    anteD() = 0.5*(anteD() + corr1);
+    
+    tConvection.ref() += anteDConvect().fvcDiv(anteD(), T+gauge());
+    
+//    // Apply multiple corrections
+//    T.oldTime() = vf;
+//    for (label iCorr = 0; iCorr < nCorr_; iCorr++)
+//    {
+//        calculateAnteD(faceFlux, T.oldTime(), EXPLICIT);
+//        tConvection.ref() = anteDConvect().fvcDiv(anteD(), T+gauge());
+//        T.oldTime() = T - dt*tConvection.ref();
+//    
+//        tConvection.ref() = (vf - T.oldTime())/dt;
+//    }
     
     return tConvection;
 }
