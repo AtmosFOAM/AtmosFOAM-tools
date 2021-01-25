@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
     const word dictName = args.optionFound("dict") ?
                           args.optionRead<word>("dict") :
                           "velocityFieldDict";
-    Info<< "Reading initial conditions from" << dictName << endl;
+    Info<< "Reading initial conditions from " << dictName << endl;
     IOdictionary dict
     (
         IOobject

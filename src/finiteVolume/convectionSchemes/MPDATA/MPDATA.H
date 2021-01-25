@@ -210,6 +210,12 @@ public:
         //- Disallow default bitwise copy construction
         MPDATA(const MPDATA&) = delete;
 
+        //- Destructor
+        ~MPDATA()
+        {
+            delete gaugePtr_;
+            delete anteDPtr_;
+        }
 
     // Member Functions
     
