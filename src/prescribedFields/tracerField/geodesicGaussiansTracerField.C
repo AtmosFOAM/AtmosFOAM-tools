@@ -10,10 +10,10 @@ geodesicGaussiansTracerField::geodesicGaussiansTracerField
     const advectable& velocityField
 )
 :
-tracerField(velocityField),
-R("radius", dimLength, dict.lookupOrDefault<scalar>("radius", scalar(6.3712e6))),
-hmax("hmax", dimless, dict.lookupOrDefault<scalar>("hmax", scalar(0.95))),
-b("b", dimless, dict.lookupOrDefault<scalar>("b", scalar(5)))
+    tracerField(velocityField),
+    R("radius", dimLength, readScalar(dict.lookup("radius"))),
+    hmax("hmax", dimless, readScalar(dict.lookup("hmax"))),
+    b("b", dimless, readScalar(dict.lookup("b")))
 {};
 
 scalar geodesicGaussiansTracerField::tracerAt(const point& p, const Time& t) const

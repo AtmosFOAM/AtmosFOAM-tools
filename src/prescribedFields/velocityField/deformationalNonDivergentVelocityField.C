@@ -2,7 +2,12 @@
 #include "addToRunTimeSelectionTable.H"
 
 defineTypeNameAndDebug(deformationalNonDivergentVelocityField, 0);
-addToRunTimeSelectionTable(velocityField, deformationalNonDivergentVelocityField, dict);
+addToRunTimeSelectionTable
+(
+    velocityField,
+    deformationalNonDivergentVelocityField,
+    dict
+);
 
 deformationalNonDivergentVelocityField::deformationalNonDivergentVelocityField
 (

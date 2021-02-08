@@ -16,6 +16,7 @@ class uniformVelocityField final : public divergentVelocityField, public advecta
     vector velocityAt(const point& p, const Time& t) const;
     point initialPositionOf(const point& p, const Time& t) const;
     const vector v;
+    const vector acceleration;
 };
 
 #endif

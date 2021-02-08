@@ -5,11 +5,19 @@
 #include "sphericalVector.H"
 
 defineTypeNameAndDebug(geodesicDeformationalDivergentVelocityField, 0);
-addToRunTimeSelectionTable(velocityField, geodesicDeformationalDivergentVelocityField, dict);
+addToRunTimeSelectionTable
+(
+    velocityField,
+    geodesicDeformationalDivergentVelocityField,
+    dict
+);
 
-geodesicDeformationalDivergentVelocityField::geodesicDeformationalDivergentVelocityField(const dictionary& dict)
+geodesicDeformationalDivergentVelocityField::geodesicDeformationalDivergentVelocityField
+(
+    const dictionary& dict
+)
 :
-radius("radius", dimLength, dict.lookupOrDefault<scalar>("radius", scalar(6.3712e6)))
+    radius("radius", dimLength, readScalar(dict.lookup("radius")))
 {};
 
 vector geodesicDeformationalDivergentVelocityField::velocityAt

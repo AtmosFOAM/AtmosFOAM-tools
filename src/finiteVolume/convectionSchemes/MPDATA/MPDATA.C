@@ -58,18 +58,25 @@ void MPDATA<Type>::calculateAnteD
     const surfaceScalarField& rdelta = mesh.deltaCoeffs();
 
     // Calculate necessary additional fields for the correction
-    // The full velocity field from the flux
-    //downwind<vector> dInterp(mesh,faceFlux);
+    // The full velocity field from the flux and correct
     surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
-    //Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
+    Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
     // The volume field interpolated onto faces
     GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
+
+    // The volume field averaged back onto cell centres
+    GeometricField<Type, fvPatchField, volMesh> Tc = fvc::average(Tf);
 
     // The surface normal gradient and the guass gradient interpolated to faces
     fv::uncorrectedSnGrad<Type> snGrad(mesh);
     GeometricField<Type, fvsPatchField, surfaceMesh> snGradT
          = snGrad.snGrad(vf);
+
+    // Gauge Stabilisation
+    gauge().dimensions() = Tf.dimensions();
+    Tf += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
+    Tc += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
 
     fv::gaussGrad<Type> grad(mesh);
     GeometricField
@@ -77,56 +84,43 @@ void MPDATA<Type>::calculateAnteD
         typename outerProduct<vector, Type>::type,
         fvsPatchField,
         surfaceMesh
-    > gradT = linearInterpolate
+    > gradTbyT = linearInterpolate
     (
-        grad.gradf(Tf, "gradf")
+        grad.gradf(Tf, "gradf")/Tc
     );
-    //gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
-    //     * mesh.Sf()/mesh.magSf();
-
-    // Gauge Stabilisation
-    gauge().dimensions() = Tf.dimensions();
-    Tf += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
+    gradTbyT += (snGradT/Tf - (gradTbyT & mesh.Sf())/mesh.magSf())
+         * mesh.Sf()/mesh.magSf();
 
     int IEalpha = IE == EXPLICIT ? -1 : 1;
 
     // Smooth by increasing Tf for implicit advection
     //if (IE == IMPLICIT)
     {
-        surfaceScalarField minTf = 2*dt/mesh.magSf()*mag
-        (
-            mag(faceFlux)*snGradT
-          + IEalpha*faceFlux*dt*(Uf & gradT)*rdelta
-        );
+//        surfaceScalarField minTf = 2*dt/mesh.magSf()*mag
+//        (
+//            mag(faceFlux)*snGradT
+//          + IEalpha*faceFlux*dt*(Uf & gradT)*rdelta
+//        );
         
         //Tf = max(Tf,minTf);
         //Tf += minTf;
-        Tf = sqrt(sqr(Tf) + sqr(minTf));
+//        Tf = sqrt(sqr(Tf) + sqr(minTf));
 
         // ante-diffusive flux for implicit advection
-        anteD() = 0.5/Tf*
+        anteD() = 0.5*
         (
-            mag(faceFlux)*snGradT/rdelta
-         + IEalpha*faceFlux*dt*(Uf & gradT)
+            mag(faceFlux)*snGradT/(Tf*rdelta)
+         + IEalpha*faceFlux*dt*(Uf & gradTbyT)
+//         + IEalpha*faceFlux*dt*linearInterpolate(fvc::div(faceFlux*Tf)/Tc)
         );
     }
 
-//    // Limit the anti-diffusive velocity so that Courant<0.5
-//    if (IE == EXPLICIT)
-//    {
-//        // Ante-diffusive flux for explicit
-//        anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta
-//                - 0.5/Tf*faceFlux*dt*(Uf & gradT);
-
-//        surfaceScalarField CoLim = 0.25*mesh.magSf()/rdelta/dt;
-//        anteD() = min(anteD(), CoLim);
-//        anteD() = max(anteD(), -CoLim);
-//    } 
-
-    // Ante-diffusive velocity recontruct and then interpolate to smooth
+    // Ante-diffusive velocity recontruct (and then interpolate to smooth)
     word Vname = IE == EXPLICIT? "anteDVe" : "anteDVi";
     volVectorField V(Vname, fvc::reconstruct(anteD()));
-    anteD() = linearInterpolate(V) & mesh.Sf();
+    //anteD() = linearInterpolate(V) & mesh.Sf();
+    //upwind<vector> dInterp(mesh,faceFlux);
+    //anteD() = dInterp.interpolate(V) & mesh.Sf();
 
     // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
@@ -293,28 +287,20 @@ MPDATA<Type>::fvcDiv
     // Store the original and upwind advected tracer
     GeometricField<Type, fvPatchField, volMesh> T = vf - dt*tConvection();
     
-    // Apply the correction
-    calculateAnteD(faceFlux, vf, EXPLICIT);
-
-//    // corrections half old and new
-//    surfaceScalarField corr1 = anteD();
-//    T.oldTime() = T - dt*anteDConvect().fvcDiv(anteD(), T+gauge());
-
-//    calculateAnteD(faceFlux, T.oldTime(), EXPLICIT);
-//    anteD() = 0.5*(anteD() + corr1);
+//    // Apply the correction (once)
+//    calculateAnteD(faceFlux, vf, EXPLICIT);
+//    tConvection.ref() += anteDConvect().fvcDiv(anteD(), T+gauge());
     
-    tConvection.ref() += anteDConvect().fvcDiv(anteD(), T+gauge());
+    // Apply multiple corrections
+    T.oldTime() = vf;
+    for (label iCorr = 0; iCorr < nCorr_; iCorr++)
+    {
+        calculateAnteD(faceFlux, T.oldTime(), EXPLICIT);
+        tConvection.ref() = anteDConvect().fvcDiv(anteD(), T+gauge());
+        T.oldTime() = T - dt*tConvection.ref();
     
-//    // Apply multiple corrections
-//    T.oldTime() = vf;
-//    for (label iCorr = 0; iCorr < nCorr_; iCorr++)
-//    {
-//        calculateAnteD(faceFlux, T.oldTime(), EXPLICIT);
-//        tConvection.ref() = anteDConvect().fvcDiv(anteD(), T+gauge());
-//        T.oldTime() = T - dt*tConvection.ref();
-//    
-//        tConvection.ref() = (vf - T.oldTime())/dt;
-//    }
+        tConvection.ref() == (vf - T.oldTime())/dt;
+    }
     
     return tConvection;
 }

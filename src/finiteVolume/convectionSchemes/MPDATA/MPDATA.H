@@ -70,7 +70,7 @@ class MPDATA
         scalar implicitCorrection_;
         
         //- Number of high order corrections
-        //label nCorr_;
+        label nCorr_;
         
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
@@ -102,15 +102,15 @@ public:
             const surfaceScalarField& faceFlux,
             scalar gauge__ = 0,
             scalar maxCoExp__ = 1,
-            scalar implicitCorrection__ = 1
-            //label nCorr__ = 1
+            scalar implicitCorrection__ = 1,
+            label nCorr__ = 1
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
             gaugePtr_(new dimensionedScalar("gauge", dimless, gauge__)),
             maxCoExp_(maxCoExp__),
             implicitCorrection_(implicitCorrection__),
-            //nCorr_(nCorr__),
+            nCorr_(nCorr__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -156,7 +156,7 @@ public:
             gaugePtr_(new dimensionedScalar("gauge", dimless, readScalar(is))),
             maxCoExp_(readScalar(is)),
             implicitCorrection_(readScalar(is)),
-            //nCorr_(readLabel(is)),
+            nCorr_(readLabel(is)),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
