@@ -13,6 +13,7 @@ class deformationalNonDivergentGeodesicVelocityField final : public nonDivergent
     vector streamfunctionAt(const point& p, const Time& t) const;
     const dimensionedScalar radius;
     const scalar deformationScale;
+    const dimensionedScalar endTime;
 };
 
 #endif

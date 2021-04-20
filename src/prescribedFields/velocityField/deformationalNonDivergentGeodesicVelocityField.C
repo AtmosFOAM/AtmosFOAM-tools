@@ -15,7 +15,8 @@ deformationalNonDivergentGeodesicVelocityField::
 deformationalNonDivergentGeodesicVelocityField(const dictionary& dict)
 :
     radius("radius", dimLength, readScalar(dict.lookup("radius"))),
-    deformationScale(readScalar(dict.lookup("deformationScale")))
+    deformationScale(readScalar(dict.lookup("deformationScale"))),
+    endTime(dict.lookup("endTime"))
 {};
 
 vector deformationalNonDivergentGeodesicVelocityField::streamfunctionAt
@@ -24,7 +25,7 @@ vector deformationalNonDivergentGeodesicVelocityField::streamfunctionAt
         const Time& t
 ) const
 {
-    const dimensionedScalar T = t.endTime();
+    const dimensionedScalar& T = endTime;
 
     const polarPoint& polarp = convertToPolar(p);
     const scalar lat = polarp.lat();

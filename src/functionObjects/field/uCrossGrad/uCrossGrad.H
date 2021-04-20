@@ -22,25 +22,25 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::functionObjects::convection
+    Foam::functionObjects::uCrossGrad
 
 Group
     grpFieldFunctionObjects
 
 Description
-    Calculates the div(u T) = div(phi T)
+    Calculates the u x grad(T)
 
 See also
     Foam::functionObjects::fieldsExpression
     Foam::functionObjects::fvMeshFunctionObject
 
 SourceFiles
-    convection.C
+    uCrossGrad.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef functionObjects_convection_H
-#define functionObjects_convection_H
+#ifndef functionObjects_uCrossGrad_H
+#define functionObjects_uCrossGrad_H
 
 #include "fieldsExpression.H"
 #include "dimensionedTypes.H"
@@ -54,10 +54,10 @@ namespace functionObjects
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class convection Declaration
+                          Class uCrossGrad Declaration
 \*---------------------------------------------------------------------------*/
 
-class convection
+class uCrossGrad
 :
     public fieldsExpression
 {
@@ -70,13 +70,13 @@ class convection
 public:
 
     //- Runtime type information
-    TypeName("convection");
+    TypeName("uCrossGrad");
 
 
     // Constructors
 
         //- Construct from Time and dictionary
-        convection
+        uCrossGrad
         (
             const word& name,
             const Time& runTime,
@@ -85,7 +85,7 @@ public:
 
 
     //- Destructor
-    virtual ~convection();
+    virtual ~uCrossGrad();
 };
 
 

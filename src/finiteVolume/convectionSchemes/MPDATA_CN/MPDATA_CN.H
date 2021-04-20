@@ -1,0 +1,244 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2011-2019 OpenFOAM Foundation
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+License
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Class
+    Foam::fv::MPDATA_CN
+
+Description
+    MPDATA_CN is MPDATA with Crank-Nicholson time stepping.
+
+SourceFiles
+    MPDATA_CN.C
+
+\*---------------------------------------------------------------------------*/
+
+#ifndef MPDATA_CN_H
+#define MPDATA_CN_H
+
+#include "upwind.H"
+#include "gaussConvectionScheme.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+namespace Foam
+{
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+namespace fv
+{
+
+/*---------------------------------------------------------------------------*\
+                           Class MPDATA_CN Declaration
+\*---------------------------------------------------------------------------*/
+
+template<class Type>
+class MPDATA_CN
+:
+    public fv::convectionScheme<Type>
+{
+    // Private Data
+
+        //- ante-diffusive flux
+        mutable surfaceScalarField* anteDPtr_;
+
+        //- upwind interpolation
+        tmp<gaussConvectionScheme<Type>> tupwindConvection_;
+        
+        //- upwind interpolation using ante-diffusive flux
+        tmp<gaussConvectionScheme<Type>> tanteDConvect_;
+
+public:
+
+    //- Runtime type information
+    TypeName("MPDATA_CN");
+
+    // Constructors
+
+        //- Construct from components
+        MPDATA_CN
+        (
+            const fvMesh& mesh,
+            const surfaceScalarField& faceFlux
+        )
+        :
+            convectionScheme<Type>(mesh, faceFlux),
+            anteDPtr_(new surfaceScalarField(faceFlux)),
+            tupwindConvection_
+            (
+                tmp<gaussConvectionScheme<Type>>
+                (
+                    new gaussConvectionScheme<Type>
+                    (
+                        mesh,
+                        faceFlux,
+                        tmp<surfaceInterpolationScheme<Type>>
+                        (
+                            new upwind<Type>(mesh, faceFlux)
+                        )
+                    )
+                )
+            ),
+            tanteDConvect_
+            (
+                tmp<gaussConvectionScheme<Type>>
+                (
+                    new gaussConvectionScheme<Type>
+                    (
+                        mesh,
+                        anteD(),
+                        tmp<surfaceInterpolationScheme<Type>>
+                        (
+                            new upwind<Type>(mesh, anteD())
+                        )
+                    )
+                )
+            )
+        {}
+
+        //- Construct from mesh, faceFlux and Istream
+        MPDATA_CN
+        (
+            const fvMesh& mesh,
+            const surfaceScalarField& faceFlux,
+            Istream& is
+        )
+        :
+            convectionScheme<Type>(mesh, faceFlux),
+            anteDPtr_(new surfaceScalarField(faceFlux)),
+            tupwindConvection_
+            (
+                tmp<gaussConvectionScheme<Type>>
+                (
+                    new gaussConvectionScheme<Type>
+                    (
+                        mesh,
+                        faceFlux,
+                        tmp<surfaceInterpolationScheme<Type>>
+                        (
+                            new upwind<Type>(mesh, faceFlux)
+                        )
+                    )
+                )
+            ),
+            tanteDConvect_
+            (
+                tmp<gaussConvectionScheme<Type>>
+                (
+                    new gaussConvectionScheme<Type>
+                    (
+                        mesh,
+                        anteD(),
+                        tmp<surfaceInterpolationScheme<Type>>
+                        (
+                            new upwind<Type>(mesh, anteD())
+                        )
+                    )
+                )
+            )
+        {}
+        
+        //- Disallow default bitwise copy construction
+        MPDATA_CN(const MPDATA_CN&) = delete;
+
+        //- Destructor
+        ~MPDATA_CN()
+        {
+            delete anteDPtr_;
+        }
+
+    // Member Functions
+    
+        // Return the ante-diffusive flux
+        surfaceScalarField& anteD() const { return *anteDPtr_; }
+    
+        //- Access to upwind convection scheme
+        const gaussConvectionScheme<Type>& upwindConvect() const
+        {
+            return tupwindConvection_();
+        }
+
+        //- Access to anti-diffusive convection scheme
+        const gaussConvectionScheme<Type>& anteDConvect() const
+        {
+            return tanteDConvect_();
+        }
+        
+        //- Calculate the anti-diffusive flux
+        void calculateAnteD
+        (
+            const surfaceScalarField& faceFlux,
+            const GeometricField<Type, fvPatchField, volMesh>& vf,
+            const surfaceScalarField& offCentre
+        ) const;
+
+        tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> interpolate
+        (
+            const surfaceScalarField&,
+            const GeometricField<Type, fvPatchField, volMesh>&
+        ) const;
+
+        tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> flux
+        (
+            const surfaceScalarField&,
+            const GeometricField<Type, fvPatchField, volMesh>&
+        ) const;
+
+        // The part of the advection which is solved implicitly
+        tmp<fvMatrix<Type>> fvmDiv
+        (
+            const surfaceScalarField&,
+            const GeometricField<Type, fvPatchField, volMesh>&
+        ) const;
+
+        tmp<GeometricField<Type, fvPatchField, volMesh>> fvcDiv
+        (
+            const surfaceScalarField&,
+            const GeometricField<Type, fvPatchField, volMesh>&
+        ) const;
+
+    // Member Operators
+
+        //- Disallow default bitwise assignment
+        void operator=(const MPDATA_CN&) = delete;
+};
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace fv
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+    #include "MPDATA_CN.C"
+#endif
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#endif
+
+// ************************************************************************* //

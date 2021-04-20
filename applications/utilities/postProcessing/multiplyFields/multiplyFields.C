@@ -28,7 +28,7 @@ Application
 Description
     Multiplies the fields in the argument list using the scales and  powers
     given in the argument list. The second field must be a scalar field.
-    If the first field is not a scalar field, then no power shoudl be given.
+    If the first field is not a scalar field, then no power should be given.
 
 \*---------------------------------------------------------------------------*/
 
@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
         volScalarField vfOut
         (
             IOobject(fileNameOut, runTime.timeName(), mesh),
-            scales[0]*pow(vfIn, powers[0]),
-            vfIn.boundaryField().types()
+            scales[0]*pow(vfIn, powers[0])/*,
+            vfIn.boundaryField().types()*/
         );
 
         if (mag(scales[1]) > SMALL)
@@ -153,7 +153,8 @@ int main(int argc, char *argv[])
             // Avoid division by zero
             if (powers[1] == -1)
             {
-                vfOther += VSMALL*sign(mag(vfOther));
+                Info << " adding small\n";
+                vfOther == vfOther + SMALL;
             }
 
             vfOut *= scales[1] * pow(vfOther, powers[1]);
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
             // Avoid division by zero
             if (powers[1] == -1)
             {
-                vfOther += VSMALL*sign(mag(vfOther));
+                vfOther == vfOther + SMALL;
             }
 
             vfOut *= scales[1]*pow(vfOther, powers[1]);

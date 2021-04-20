@@ -30,7 +30,6 @@ License
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
-//#include "downwind.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,8 +74,8 @@ void MPDATA<Type>::calculateAnteD
 
     // Gauge Stabilisation
     gauge().dimensions() = Tf.dimensions();
-    Tf += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
-    Tc += gauge() + dimensionedScalar("", Tf.dimensions(), SMALL);
+    Tf += gauge() + dimensionedScalar("", Tf.dimensions(), VSMALL);
+    Tc += gauge() + dimensionedScalar("", Tf.dimensions(), VSMALL);
 
     fv::gaussGrad<Type> grad(mesh);
     GeometricField
@@ -94,27 +93,36 @@ void MPDATA<Type>::calculateAnteD
     int IEalpha = IE == EXPLICIT ? -1 : 1;
 
     // Smooth by increasing Tf for implicit advection
-    //if (IE == IMPLICIT)
+    if (IE == IMPLICIT)
     {
-//        surfaceScalarField minTf = 2*dt/mesh.magSf()*mag
-//        (
-//            mag(faceFlux)*snGradT
-//          + IEalpha*faceFlux*dt*(Uf & gradT)*rdelta
-//        );
-        
-        //Tf = max(Tf,minTf);
-        //Tf += minTf;
-//        Tf = sqrt(sqr(Tf) + sqr(minTf));
-
-        // ante-diffusive flux for implicit advection
-        anteD() = 0.5*
+        surfaceScalarField minTf = 2*dt/mesh.magSf()*mag
         (
-            mag(faceFlux)*snGradT/(Tf*rdelta)
-         + IEalpha*faceFlux*dt*(Uf & gradTbyT)
-//         + IEalpha*faceFlux*dt*linearInterpolate(fvc::div(faceFlux*Tf)/Tc)
+            mag(faceFlux)*snGradT
+          + IEalpha*faceFlux*dt*(Uf & gradTbyT)*Tf*rdelta
         );
+        minTf = linearInterpolate(fvc::average(minTf));
+        
+        //Tf = max(Tf, minTf);
+        //Tf += minTf;
+        Tf = sqrt(sqr(Tf) + sqr(minTf));
     }
 
+    // ante-diffusive flux for implicit or explicit advection
+    anteD() = 0.5*
+    (
+        mag(faceFlux)*snGradT/(Tf*rdelta)
+     + IEalpha*faceFlux*dt*(Uf & gradTbyT)
+//         + IEalpha*faceFlux*dt*linearInterpolate(fvc::div(faceFlux*Tf)/Tc)
+    );
+    
+    // Limit the anti-diffusive Courant number for implicit advection
+/*    if (IE == IMPLICIT)
+    {
+        volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
+        surfaceScalarField Cof = linearInterpolate(Co);
+        anteD() *= min(Cof, scalar(0.5))/(Cof + VSMALL);
+    }
+*/
     // Ante-diffusive velocity recontruct (and then interpolate to smooth)
     word Vname = IE == EXPLICIT? "anteDVe" : "anteDVi";
     volVectorField V(Vname, fvc::reconstruct(anteD()));
@@ -126,6 +134,8 @@ void MPDATA<Type>::calculateAnteD
     if (mesh.time().writeTime())
     {
         V.write();
+        volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
+        Co.write();
     }
 }
 
@@ -243,7 +253,7 @@ MPDATA<Type>::fvmDiv
     // Put the low order implicit divergence on the RHS of the matrix
     fvm += upwindConvect().fvcDiv(fluxBig, T);
     
-    // Re-calculate and apply the correction
+    // Re-calculate and apply the correction and limit the Courant number
     if (implicitCorrection_ > 0)
     {
         // Save the old flux
@@ -253,8 +263,10 @@ MPDATA<Type>::fvmDiv
         anteD() -= oldCorr;
         
         surfaceScalarField c = linearInterpolate(CourantNo(fluxBig, dt));
+        //anteD() *= min(c, scalar(0.5))/(c + VSMALL);
         c = sqr(min(1/(c+SMALL), dimensionedScalar("",dimless, scalar(1))));
-        anteD() = c*anteD();
+        //c = 0.5*(1 + tanh((0.75-c)*8));
+        //anteD() = c*anteD();
 
         fvm += anteDConvect().fvcDiv(implicitCorrection_*anteD(), T+gauge());
     }

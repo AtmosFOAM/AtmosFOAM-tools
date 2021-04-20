@@ -23,9 +23,9 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "convection.H"
+#include "uCrossGrad.H"
 #include "addToRunTimeSelectionTable.H"
-#include "fvcDiv.H"
+#include "fvcGrad.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -33,12 +33,12 @@ namespace Foam
 {
 namespace functionObjects
 {
-    defineTypeNameAndDebug(convection, 0);
+    defineTypeNameAndDebug(uCrossGrad, 0);
 
     addToRunTimeSelectionTable
     (
         functionObject,
-        convection,
+        uCrossGrad,
         dictionary
     );
 }
@@ -47,22 +47,22 @@ namespace functionObjects
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-bool Foam::functionObjects::convection::calc()
+bool Foam::functionObjects::uCrossGrad::calc()
 {
     if
     (
         foundObject<volScalarField>(fieldNames_[0])
-     && foundObject<surfaceScalarField>(fieldNames_[1])
+     && foundObject<volVectorField>(fieldNames_[1])
     )
     {
         const volScalarField& T(lookupObject<volScalarField>(fieldNames_[0]));
-        const surfaceScalarField& phi
+        const volVectorField& u
         (
-            lookupObject<surfaceScalarField>(fieldNames_[1])
+            lookupObject<volVectorField>(fieldNames_[1])
         );
 
-        tmp<volScalarField> divuT(-fvc::div(phi, T, "convection"));
-        return store(resultName_, divuT);
+        tmp<volVectorField> uxgradT(u ^ fvc::grad(T));
+        return store(resultName_, uxgradT);
     }
     else
     {
@@ -75,7 +75,7 @@ bool Foam::functionObjects::convection::calc()
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::functionObjects::convection::convection
+Foam::functionObjects::uCrossGrad::uCrossGrad
 (
     const word& name,
     const Time& runTime,
@@ -90,7 +90,7 @@ Foam::functionObjects::convection::convection
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::functionObjects::convection::~convection()
+Foam::functionObjects::uCrossGrad::~uCrossGrad()
 {}
 
 
