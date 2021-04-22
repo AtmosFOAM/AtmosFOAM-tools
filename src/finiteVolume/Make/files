@@ -1,8 +1,8 @@
 convectionSchemes/MPDATA/MPDATAs.C
 convectionSchemes/MPDATA_CN/MPDATA_CNs.C
-/*convectionSchemes/fluxCorrectedTransport/fvcFluxLimit.C
+convectionSchemes/fluxCorrectedTransport/fvcFluxLimit.C
 convectionSchemes/fluxCorrectedTransport/fluxCorrectedTransports.C
-convectionSchemes/CrankNicolsonConvection/CrankNicolsonConvections.C*/
+convectionSchemes/CrankNicolsonConvection/CrankNicolsonConvections.C
 interpolation/approxTypes/approxType.C
 fvc/fvcCurlf.C
 fvc/fvcCof.C
