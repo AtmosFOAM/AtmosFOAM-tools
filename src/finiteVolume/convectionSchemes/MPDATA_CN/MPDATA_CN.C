@@ -235,7 +235,7 @@ MPDATA_CN<Type>::fvcDiv
 
     // Calculate, apply (and update) the correction
     calculateAnteD(faceFlux, T, offCentre);
-    for(label iCorr =1; iCorr < nCorr_; iCorr++)
+/*    for(label iCorr =1; iCorr < nCorr_; iCorr++)
     {
         T.oldTime() = T - dt*anteDConvect().fvcDiv(anteD(), T.oldTime());
         calculateAnteD
@@ -244,7 +244,7 @@ MPDATA_CN<Type>::fvcDiv
             T.oldTime(),
             offCentre
         );
-    }
+    }*/
     tConvection.ref() += anteDConvect().fvcDiv(anteD(), T);
     
     return tConvection;
