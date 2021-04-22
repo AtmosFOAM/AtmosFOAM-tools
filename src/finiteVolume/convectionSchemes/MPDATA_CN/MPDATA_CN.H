@@ -59,6 +59,9 @@ class MPDATA_CN
 {
     // Private Data
 
+        //- Number of corrections (1 is normal)
+        label nCorr_;
+
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
 
@@ -79,10 +82,12 @@ public:
         MPDATA_CN
         (
             const fvMesh& mesh,
-            const surfaceScalarField& faceFlux
+            const surfaceScalarField& faceFlux,
+            label nCorr__ = 1
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
+            nCorr_(nCorr__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -125,6 +130,7 @@ public:
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
+            nCorr_(readLabel(is)),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
