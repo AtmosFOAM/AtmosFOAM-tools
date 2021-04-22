@@ -56,6 +56,7 @@ void MPDATA_CN<Type>::calculateAnteD
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
     const surfaceScalarField& rdelta = mesh.deltaCoeffs();
+    localMax<scalar> maxInterp(this->mesh());
 
     // Calculate necessary additional fields for the correction
 
@@ -71,12 +72,11 @@ void MPDATA_CN<Type>::calculateAnteD
     // The volume field interpolated onto faces
     GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
 
-    // The volume field averaged back onto cell centres
-    GeometricField<Type, fvPatchField, volMesh> Tc = fvc::average(Tf);
-
     // Stabilisation
     Tf += dimensionedScalar("", Tf.dimensions(), SMALL);
-    Tc += dimensionedScalar("", Tc.dimensions(), SMALL);
+
+    // The volume field averaged back onto cell centres
+    //GeometricField<Type, fvPatchField, volMesh> Tc = fvc::average(Tf);
 
     // Full face gradient of T /T
     fv::gaussGrad<Type> grad(mesh);
@@ -85,26 +85,29 @@ void MPDATA_CN<Type>::calculateAnteD
         typename outerProduct<vector, Type>::type,
         fvsPatchField,
         surfaceMesh
-    > gradTbyT = linearInterpolate
+    > gradT = linearInterpolate
     (
-        grad.gradf(Tf, "gradf")/Tc
+        grad.gradf(Tf, "gradf")
     );
-    gradTbyT += (snGradT/Tf - (gradTbyT & mesh.Sf())/mesh.magSf())
+    gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
          * mesh.Sf()/mesh.magSf();
 
     // Smooth by increasing Tf for implicit advection
-    surfaceScalarField minTf = 2*dt/mesh.magSf()*mag
+    surfaceScalarField minTf = 4*dt/mesh.magSf()*mag
     (
         mag(faceFlux)*snGradT
-      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradTbyT)*rdelta*Tf
+      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)*rdelta
     );
-    Tf = max(Tf, minTf);
+    //minTf = maxInterp.interpolate(2*fvc::average(minTf));
+    //Tf = max(Tf, minTf);
+    Tf = sqrt(sqr(Tf) + sqr(minTf));
+    //Tf += minTf;
 
     // ante-diffusive flux for implicit or explicit advection
-    anteD() = sqr(1-offCentre)*0.5/Tf*
+    anteD() = /*sqr(1-offCentre)**/0.5/Tf*
     (
         mag(faceFlux)*snGradT/rdelta
-      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradTbyT)*Tf
+      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)
     );
 
     // Ante-diffusive velocity recontruct (and then interpolate to smooth)
@@ -114,12 +117,8 @@ void MPDATA_CN<Type>::calculateAnteD
     Info << "Anti diffusive Courant number max = " << max(Co).value() << endl;
 
     // Limit the anti-diffusive flux so that Co < 0.5
-    localMax<scalar> maxInterp(this->mesh());
     const surfaceScalarField Cof = maxInterp.interpolate(Co);
     anteD() *= min(Cof, scalar(0.45))/max(Cof, SMALL);
-
-    Co = CourantNo(anteD(), dt);
-    Info << "Anti diffusive Courant number max = " << max(Co).value() << endl;
 
     // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
@@ -234,8 +233,18 @@ MPDATA_CN<Type>::fvcDiv
     // Add the low order implicit divergence
     tConvection.ref() += upwindConvect().fvcDiv(offCentre*faceFlux, T);
 
-    // Apply the correction
-    calculateAnteD(faceFlux, vf, offCentre);
+    // Calculate, apply (and update) the correction
+    calculateAnteD(faceFlux, T, offCentre);
+    for(label iCorr =1; iCorr < nCorr_; iCorr++)
+    {
+        T.oldTime() = T - dt*anteDConvect().fvcDiv(anteD(), T.oldTime());
+        calculateAnteD
+        (
+            faceFlux,
+            T.oldTime(),
+            offCentre
+        );
+    }
     tConvection.ref() += anteDConvect().fvcDiv(anteD(), T);
     
     return tConvection;
