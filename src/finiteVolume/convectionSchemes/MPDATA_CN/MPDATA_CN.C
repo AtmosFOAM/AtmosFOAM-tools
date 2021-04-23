@@ -93,7 +93,7 @@ void MPDATA_CN<Type>::calculateAnteD
          * mesh.Sf()/mesh.magSf();
 
     // Smooth by increasing Tf for implicit advection
-    surfaceScalarField minTf = 4*dt/mesh.magSf()*
+    surfaceScalarField minTf = 4*(1+offCentre)*dt/mesh.magSf()*
     (
         mag(faceFlux)*snGradT
       - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)*rdelta
@@ -113,6 +113,14 @@ void MPDATA_CN<Type>::calculateAnteD
 
     // Ante-diffusive velocity recontruct (and then interpolate to smooth)
     volVectorField V("anteDV", fvc::reconstruct(anteD()));
+
+    // Smooth for large Courant numbers
+    if (max(offCentre).value() > SMALL)
+    {
+        surfaceScalarField needsSmoothing = min(2*offCentre, scalar(1));
+        anteD() = (1-needsSmoothing)*anteD()
+                + needsSmoothing*(1-needsSmoothing)*(linearInterpolate(V) & mesh.Sf());
+    }
 
     volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
     Info << "Anti diffusive Courant number max = " << max(Co).value() << endl;
