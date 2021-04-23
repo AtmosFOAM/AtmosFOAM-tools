@@ -93,22 +93,23 @@ void MPDATA_CN<Type>::calculateAnteD
          * mesh.Sf()/mesh.magSf();
 
     // Smooth by increasing Tf for implicit advection
-    surfaceScalarField minTf = 4*dt/mesh.magSf()*mag
+    surfaceScalarField minTf = 4*dt/mesh.magSf()*
     (
         mag(faceFlux)*snGradT
       - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)*rdelta
     );
     //minTf = maxInterp.interpolate(2*fvc::average(minTf));
-    //Tf = max(Tf, minTf);
-    Tf = sqrt(sqr(Tf) + sqr(minTf));
+    Tf = max(Tf, mag(minTf));
+    //Tf = sqrt(sqr(Tf) + sqr(minTf));
     //Tf += minTf;
 
     // ante-diffusive flux for implicit or explicit advection
-    anteD() = /*sqr(1-offCentre)**/0.5/Tf*
+    /*anteD() = 0.5/Tf*
     (
         mag(faceFlux)*snGradT/rdelta
       - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)
-    );
+    );*/
+    anteD() = 0.5/(4*dt)*mesh.magSf()/rdelta*minTf/Tf;
 
     // Ante-diffusive velocity recontruct (and then interpolate to smooth)
     volVectorField V("anteDV", fvc::reconstruct(anteD()));
@@ -116,10 +117,10 @@ void MPDATA_CN<Type>::calculateAnteD
     volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
     Info << "Anti diffusive Courant number max = " << max(Co).value() << endl;
 
-    // Limit the anti-diffusive flux so that Co < 0.5
+    /*// Limit the anti-diffusive flux so that Co < 0.5
     const surfaceScalarField Cof = maxInterp.interpolate(Co);
     anteD() *= min(Cof, scalar(0.45))/max(Cof, SMALL);
-
+*/
     // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
     {
@@ -234,17 +235,16 @@ MPDATA_CN<Type>::fvcDiv
     tConvection.ref() += upwindConvect().fvcDiv(offCentre*faceFlux, T);
 
     // Calculate, apply (and update) the correction
-    calculateAnteD(faceFlux, T, offCentre);
-/*    for(label iCorr =1; iCorr < nCorr_; iCorr++)
+    calculateAnteD(faceFlux, vf, offCentre);
+    for(label iCorr =1; iCorr < nCorr_; iCorr++)
     {
-        T.oldTime() = T - dt*anteDConvect().fvcDiv(anteD(), T.oldTime());
         calculateAnteD
         (
             faceFlux,
-            T.oldTime(),
+            T - dt*anteDConvect().fvcDiv(anteD(), T),
             offCentre
         );
-    }*/
+    }
     tConvection.ref() += anteDConvect().fvcDiv(anteD(), T);
     
     return tConvection;
