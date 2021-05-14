@@ -12,9 +12,10 @@ class geodesicGaussiansTracerField final : public tracerField
 
     private:
     scalar tracerAt(const point& p, const Time& t) const;
-    const dimensionedScalar R;
-    const dimensionedScalar hmax;
-    const dimensionedScalar b;
+    const scalar R;
+    const scalar hBackground;
+    const scalar hmax;
+    const scalar b;
 };
 
 #endif

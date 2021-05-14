@@ -56,7 +56,6 @@ void MPDATA_CN<Type>::calculateAnteD
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
     const surfaceScalarField& rdelta = mesh.deltaCoeffs();
-    localMax<scalar> maxInterp(this->mesh());
 
     // Calculate necessary additional fields for the correction
 
@@ -66,8 +65,7 @@ void MPDATA_CN<Type>::calculateAnteD
 
     // The surface normal gradient and the guass gradient interpolated to faces
     fv::uncorrectedSnGrad<Type> snGrad(mesh);
-    GeometricField<Type, fvsPatchField, surfaceMesh> snGradT
-         = snGrad.snGrad(vf);
+    GeometricField<Type, fvsPatchField, surfaceMesh> snGradT =snGrad.snGrad(vf);
 
     // The volume field interpolated onto faces
     GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
@@ -75,64 +73,41 @@ void MPDATA_CN<Type>::calculateAnteD
     // Stabilisation
     Tf += dimensionedScalar("", Tf.dimensions(), SMALL);
 
-    // The volume field averaged back onto cell centres
-    //GeometricField<Type, fvPatchField, volMesh> Tc = fvc::average(Tf);
-
-    // Full face gradient of T /T
+    // Full face gradient of T
     fv::gaussGrad<Type> grad(mesh);
     GeometricField
     <
         typename outerProduct<vector, Type>::type,
         fvsPatchField,
         surfaceMesh
-    > gradT = linearInterpolate
-    (
-        grad.gradf(Tf, "gradf")
-    );
+    > gradT = linearInterpolate(grad.gradf(Tf, "gradf"));
     gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
          * mesh.Sf()/mesh.magSf();
 
-    // Smooth by increasing Tf for implicit advection
-    surfaceScalarField minTf = 4*(1+offCentre)*dt/mesh.magSf()*
+    // Find miniumum T to obey CFL limit
+    surfaceScalarField suppress = max(1-2*offCentre, scalar(0));
+    surfaceScalarField minTf = 0.5*dt/mesh.magSf()*
     (
         mag(faceFlux)*snGradT
-      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)*rdelta
+      - suppress*faceFlux*dt*(Uf & gradT)*rdelta
     );
-    //minTf = maxInterp.interpolate(2*fvc::average(minTf));
-    Tf = max(Tf, mag(minTf));
-    //Tf = sqrt(sqr(Tf) + sqr(minTf));
-    //Tf += minTf;
+    //Tf = sqrt(sqr(Tf) + sqr(8*minTf));
+    Tf = max(Tf, 8*mag(minTf));
 
     // ante-diffusive flux for implicit or explicit advection
-    /*anteD() = 0.5/Tf*
-    (
-        mag(faceFlux)*snGradT/rdelta
-      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)
-    );*/
-    anteD() = 0.5/(4*dt)*mesh.magSf()/rdelta*minTf/Tf;
+    anteD() = suppress*mesh.magSf()/dt/rdelta*minTf/Tf;
 
-    // Ante-diffusive velocity recontruct (and then interpolate to smooth)
-    volVectorField V("anteDV", fvc::reconstruct(anteD()));
-
-    // Smooth for large Courant numbers
-    if (max(offCentre).value() > SMALL)
-    {
-        surfaceScalarField needsSmoothing = min(2*offCentre, scalar(1));
-        anteD() = (1-needsSmoothing)*anteD()
-                + needsSmoothing*(1-needsSmoothing)*(linearInterpolate(V) & mesh.Sf());
-    }
-
-    volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
-    Info << "Anti diffusive Courant number max = " << max(Co).value() << endl;
-
-    /*// Limit the anti-diffusive flux so that Co < 0.5
-    const surfaceScalarField Cof = maxInterp.interpolate(Co);
-    anteD() *= min(Cof, scalar(0.45))/max(Cof, SMALL);
-*/
     // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
     {
+        // Ante-diffusive velocity and divergence
+        surfaceVectorField V("anteDV", linearInterpolate(fvc::reconstruct(anteD())));
+        V += (anteD() - (V & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
+        volScalarField divAnteD("divAnteD", fvc::div(anteD()));
         V.write();
+        divAnteD.write();
+        volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
+        Co.write();
     }
 }
 
@@ -200,11 +175,14 @@ MPDATA_CN<Type>::fvcDiv
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
-    const dimensionedScalar& dt = this->mesh().time().deltaT();
-    const volScalarField offCentreC
+    // Reference to the mesh, time step and mesh spacing
+    const fvMesh& mesh = this->mesh();
+    const dimensionedScalar& dt = mesh.time().deltaT();
+
+    volScalarField offCentreC
     (
         "offCentreC",
-        max(1-1/CourantNo(faceFlux, dt), scalar(0))
+        max(1-1/(CourantNo(faceFlux, dt) + SMALL), scalar(0))
     );
     localMax<scalar> maxInterp(this->mesh());
     const surfaceScalarField offCentre = maxInterp.interpolate(offCentreC);

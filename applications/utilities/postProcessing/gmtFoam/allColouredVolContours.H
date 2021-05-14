@@ -336,7 +336,7 @@ else
 }
 
 // Add max and min text if required
-if (annotate == "minMax")
+/*if (annotate == "minMax")
 {
     systemCall = "echo '" + stringScalar(annotateX) + " "
                + stringScalar(annotateY) + " 12 0 Times-Roman TL "
@@ -346,7 +346,7 @@ if (annotate == "minMax")
 //               + "    L@-2@- = " + stringScalar(l2,4);
     systemCall += "' | gmt pstext -J -R -h0 -N -O -K >>" + epsFile;
     systemVerbose(systemCall);
-}
+}*/
 
 // remove temp files
 systemCall = "rm colourScale.cpt '" + tmpFile + "' ";
