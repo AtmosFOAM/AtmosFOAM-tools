@@ -103,11 +103,7 @@ void MPDATA_CN<Type>::calculateAnteD
         // Ante-diffusive velocity and divergence
         surfaceVectorField V("anteDV", linearInterpolate(fvc::reconstruct(anteD())));
         V += (anteD() - (V & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
-        volScalarField divAnteD("divAnteD", fvc::div(anteD()));
         V.write();
-        divAnteD.write();
-        volScalarField Co("anteDeCo", CourantNo(anteD(), dt));
-        Co.write();
     }
 }
 
@@ -187,12 +183,6 @@ MPDATA_CN<Type>::fvcDiv
     localMax<scalar> maxInterp(this->mesh());
     const surfaceScalarField offCentre = maxInterp.interpolate(offCentreC);
 
-    // Write out the off centering if needed
-    if (this->mesh().time().writeTime())
-    {
-        offCentreC.write();
-    }
-
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
     (
@@ -221,7 +211,7 @@ MPDATA_CN<Type>::fvcDiv
     tConvection.ref() += upwindConvect().fvcDiv(offCentre*faceFlux, T);
 
     // Calculate, apply (and update) the correction
-    calculateAnteD(faceFlux, vf, offCentre);
+    if (nCorr_ > 0) calculateAnteD(faceFlux, vf, offCentre);
     for(label iCorr =1; iCorr < nCorr_; iCorr++)
     {
         calculateAnteD
@@ -231,7 +221,7 @@ MPDATA_CN<Type>::fvcDiv
             offCentre
         );
     }
-    tConvection.ref() += anteDConvect().fvcDiv(anteD(), T);
+    if (nCorr_ > 0) tConvection.ref() += anteDConvect().fvcDiv(anteD(), T);
     
     return tConvection;
 }
