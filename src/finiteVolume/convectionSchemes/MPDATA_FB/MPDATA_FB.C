@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "MPDATA.H"
+#include "MPDATA_FB.H"
 #include "fvMatrices.H"
 #include "fvcDiv.H"
 #include "EulerDdtScheme.H"
@@ -44,7 +44,7 @@ namespace fv
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class Type>
-void MPDATA<Type>::calculateAnteD
+void MPDATA_FB<Type>::calculateAnteD
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
@@ -141,7 +141,7 @@ void MPDATA<Type>::calculateAnteD
 
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-MPDATA<Type>::interpolate
+MPDATA_FB<Type>::interpolate
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -162,7 +162,7 @@ MPDATA<Type>::interpolate
 
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-MPDATA<Type>::flux
+MPDATA_FB<Type>::flux
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -174,7 +174,7 @@ MPDATA<Type>::flux
 
 template<class Type>
 tmp<fvMatrix<Type>>
-MPDATA<Type>::fvmDiv
+MPDATA_FB<Type>::fvmDiv
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -277,7 +277,7 @@ MPDATA<Type>::fvmDiv
 
 template<class Type>
 tmp<GeometricField<Type, fvPatchField, volMesh>>
-MPDATA<Type>::fvcDiv
+MPDATA_FB<Type>::fvcDiv
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf

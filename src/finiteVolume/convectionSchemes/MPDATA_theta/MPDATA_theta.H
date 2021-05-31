@@ -22,19 +22,18 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::fv::MPDATA
+    Foam::fv::MPDATA_theta
 
 Description
-    MPDATA advection either as an explicit or implicit correction on first order
-    forward or backward time stepping. With or without a guage. 
+    MPDATA_theta is MPDATA with Crank-Nicholson time stepping.
 
 SourceFiles
-    MPDATA.C
+    MPDATA_theta.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_H
-#define MPDATA_H
+#ifndef MPDATA_theta_H
+#define MPDATA_theta_H
 
 #include "upwind.H"
 #include "gaussConvectionScheme.H"
@@ -50,28 +49,22 @@ namespace fv
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA Declaration
+                           Class MPDATA_theta Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA
+class MPDATA_theta
 :
     public fv::convectionScheme<Type>
 {
     // Private Data
 
-        //- Pointer to the MPDATA gauge (minimum allowed value)
-        mutable dimensionedScalar* gaugePtr_;
-        
-        //- Maximum Courant number for explicit advection
-        scalar maxCoExp_;
-        
-        //- Scaling for implicit high order correction
-        scalar implicitCorrection_;
-        
-        //- Number of high order corrections
+        //- Number of corrections (1 is normal)
         label nCorr_;
         
+        // MPDATA gauge (the minimum allowed value)
+        const scalar gauge_;
+
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
 
@@ -84,33 +77,22 @@ class MPDATA
 public:
 
     //- Runtime type information
-    TypeName("MPDATA");
-
-    //- Flags for implicit or explicit
-    enum implicitExplicit
-    {
-        IMPLICIT,
-        EXPLICIT
-    };
+    TypeName("MPDATA_theta");
 
     // Constructors
 
         //- Construct from components
-        MPDATA
+        MPDATA_theta
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
-            scalar gauge__ = 0,
-            scalar maxCoExp__ = 1,
-            scalar implicitCorrection__ = 1,
-            label nCorr__ = 1
+            label nCorr__ = 1,
+            scalar gauge__ = 0
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
-            gaugePtr_(new dimensionedScalar("gauge", dimless, gauge__)),
-            maxCoExp_(maxCoExp__),
-            implicitCorrection_(implicitCorrection__),
             nCorr_(nCorr__),
+            gauge_(gauge__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -145,7 +127,7 @@ public:
         {}
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA
+        MPDATA_theta
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -153,10 +135,8 @@ public:
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
-            gaugePtr_(new dimensionedScalar("gauge", dimless, readScalar(is))),
-            maxCoExp_(readScalar(is)),
-            implicitCorrection_(readScalar(is)),
             nCorr_(readLabel(is)),
+            gauge_(readScalar(is)),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -188,39 +168,18 @@ public:
                     )
                 )
             )
-        {
-            if (gauge().value() < 0)
-            {
-                FatalErrorIn("MPDATA::MPDATA") << " gauge must be >=0 but "
-                    << gauge().value() << " was given\n" << exit(FatalError);
-            }
-            if (maxCoExp_ < 0)
-            {
-                FatalErrorIn("MPDATA::MPDATA") << " maxCoExp must be >=0 but "
-                    << maxCoExp_ << " was given\n" << exit(FatalError);
-            }
-            if (implicitCorrection_ < 0 || implicitCorrection_ > 1)
-            {
-                FatalErrorIn("MPDATA::MPDATA")
-                    << " implicitCorrection_ must be between 0 and 1 but "
-                    << implicitCorrection_ << " was given\n" << exit(FatalError);
-            }
-        }
-
+        {}
+        
         //- Disallow default bitwise copy construction
-        MPDATA(const MPDATA&) = delete;
+        MPDATA_theta(const MPDATA_theta&) = delete;
 
         //- Destructor
-        ~MPDATA()
+        ~MPDATA_theta()
         {
-            delete gaugePtr_;
             delete anteDPtr_;
         }
 
     // Member Functions
-    
-        // The gauge as a dimensionedScalar (the MPDATA minimum allowed value)
-        dimensionedScalar& gauge() const { return *gaugePtr_; }
     
         // Return the ante-diffusive flux
         surfaceScalarField& anteD() const { return *anteDPtr_; }
@@ -242,7 +201,7 @@ public:
         (
             const surfaceScalarField& faceFlux,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            const implicitExplicit& IE
+            const surfaceScalarField& offCentre
         ) const;
 
         tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> interpolate
@@ -257,7 +216,7 @@ public:
             const GeometricField<Type, fvPatchField, volMesh>&
         ) const;
 
-        // The part of the advection with Co>maxCoExp_ is solved implicitly
+        // The part of the advection which is solved implicitly
         tmp<fvMatrix<Type>> fvmDiv
         (
             const surfaceScalarField&,
@@ -273,7 +232,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA&) = delete;
+        void operator=(const MPDATA_theta&) = delete;
 };
 
 
@@ -288,7 +247,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    #include "MPDATA.C"
+    #include "MPDATA_theta.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

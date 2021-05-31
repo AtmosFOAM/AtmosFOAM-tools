@@ -23,13 +23,14 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "MPDATA_CN.H"
+#include "MPDATA_theta.H"
 #include "fvMatrices.H"
 #include "fvcDiv.H"
 #include "EulerDdtScheme.H"
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
+#include "localMax.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,10 +45,11 @@ namespace fv
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class Type>
-void MPDATA_CN<Type>::calculateAnteD
+void MPDATA_theta<Type>::calculateAnteD
 (
     const surfaceScalarField& faceFlux,
-    const GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    const surfaceScalarField& offCentre
 ) const
 {
     // Reference to the mesh, time step and mesh spacing
@@ -81,12 +83,25 @@ void MPDATA_CN<Type>::calculateAnteD
     > gradT = linearInterpolate(grad.gradf(Tf, "gradf"));
     gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
          * mesh.Sf()/mesh.magSf();
+/*
+    // Find miniumum T to obey CFL limit
+    surfaceScalarField suppress = sqr(1-offCentre);
+    surfaceScalarField minTf = suppress*0.5*dt/mesh.magSf()*
+    (
+        mag(faceFlux)*snGradT
+      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)*rdelta
+    );
+    //Tf = sqrt(sqr(Tf) + sqr(8*minTf));
+    Tf = max(Tf, 8*mag(minTf));
 
+    // ante-diffusive flux for implicit or explicit advection
+    anteD() = mesh.magSf()/dt/rdelta*minTf/Tf;
+*/
     // ante-diffusive flux for implicit or explicit advection
     anteD() = 0.5/Tf*
     (
         mag(faceFlux)*snGradT/rdelta
-      - max(1-2*offCentre_, scalar(0))*faceFlux*dt*(Uf & gradT)
+      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)
     );
     
     // Limit to obey Courant number restriction
@@ -115,7 +130,7 @@ void MPDATA_CN<Type>::calculateAnteD
 
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-MPDATA_CN<Type>::interpolate
+MPDATA_theta<Type>::interpolate
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -136,7 +151,7 @@ MPDATA_CN<Type>::interpolate
 
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-MPDATA_CN<Type>::flux
+MPDATA_theta<Type>::flux
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -148,7 +163,7 @@ MPDATA_CN<Type>::flux
 
 template<class Type>
 tmp<fvMatrix<Type>>
-MPDATA_CN<Type>::fvmDiv
+MPDATA_theta<Type>::fvmDiv
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -171,7 +186,7 @@ MPDATA_CN<Type>::fvmDiv
 
 template<class Type>
 tmp<GeometricField<Type, fvPatchField, volMesh>>
-MPDATA_CN<Type>::fvcDiv
+MPDATA_theta<Type>::fvcDiv
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -181,10 +196,18 @@ MPDATA_CN<Type>::fvcDiv
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
 
+    volScalarField offCentreC
+    (
+        "offCentreC",
+        max(1-1/(CourantNo(faceFlux, dt) + SMALL), scalar(0))
+    );
+    localMax<scalar> maxInterp(this->mesh());
+    const surfaceScalarField offCentre = maxInterp.interpolate(offCentreC);
+
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
     (
-        upwindConvect().fvcDiv((1-offCentre_)*faceFlux, vf)
+        upwindConvect().fvcDiv((1-offCentre)*faceFlux, vf)
     );
 
     tConvection.ref().rename
@@ -201,21 +224,22 @@ MPDATA_CN<Type>::fvcDiv
     (
         backwardEuler.fvmDdt(T)
       + tConvection()
-      + upwindConvect().fvmDiv(offCentre_*faceFlux, T)
+      + upwindConvect().fvmDiv(offCentre*faceFlux, T)
     );
     fvmT.solve();
     
     // Add the low order implicit divergence
-    tConvection.ref() += upwindConvect().fvcDiv(offCentre_*faceFlux, T);
+    tConvection.ref() += upwindConvect().fvcDiv(offCentre*faceFlux, T);
 
     // Calculate, apply (and update) the correction
-    if (nCorr_ > 0) calculateAnteD(faceFlux, vf);
+    if (nCorr_ > 0) calculateAnteD(faceFlux, vf, offCentre);
     for(label iCorr =1; iCorr < nCorr_; iCorr++)
     {
         calculateAnteD
         (
             faceFlux,
-            T - dt*anteDConvect().fvcDiv(anteD(), T)
+            T - dt*anteDConvect().fvcDiv(anteD(), T),
+            offCentre
         );
     }
     if (nCorr_ > 0)

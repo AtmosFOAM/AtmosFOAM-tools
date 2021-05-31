@@ -60,6 +60,11 @@ scalar maxSsf = 0;
 
     for(label celli = 0; celli < ssf.size(); celli++)
     {
+        // Cell centre
+        const point& C = mesh.C()[celli];
+        const polarPoint Cpp = (projection2D == "latLon") ? 
+                               convertToPolar(C, lonMax) : polarPoint();
+    
         // First check that all vertices of this cell should be plot
         bool plotCell = true;
 
@@ -106,7 +111,7 @@ scalar maxSsf = 0;
         // Check that the cell centre is within rMin, rMax and lonMin, lonMax
         if (plotCell && rMax > rMin)
         {
-            const scalar r = mag(mesh.C()[celli]);
+            const scalar r = mag(C);
             if (r < rMin || r > rMax) plotCell = false;
         }
         if (plotCell && lonMax > lonMin)
@@ -166,16 +171,28 @@ scalar maxSsf = 0;
                     }
                     else if (projection2D == "latLon")
                     {
-                        scalar r = mag(p);
+/*                        scalar r = mag(p);
                         scalar sinLat = r > VSMALL ? p.z()/r : 0;
                         sinLat = max(min(sinLat, 1), -1);
                         scalar lat = radToDeg*Foam::asin(sinLat);
                         scalar cosLat = Foam::sqrt(1 - sqr(sinLat));
                         scalar cosLon = mag(r*cosLat) > VSMALL ?
-                        p.x()/(r*cosLat):0;
+                                p.x()/(r*cosLat):0;
                         cosLon = max(min(cosLon, 1), -1);
                         scalar lon = radToDeg*sign(p.y())*Foam::acos(cosLon);
-                        os << lon << "   " << lat << '\n';
+*/
+                        polarPoint ppp = convertToPolar(p, lonMax);
+                        scalar lat = polarPoint::radToDeg*ppp.lat();
+                        scalar lon = polarPoint::radToDeg*ppp.lon();
+                        
+                        if
+                        (
+                            lonMin != lonMax &&
+                            mag(polarPoint::radToDeg*Cpp.lon() - lon) < 60
+                        )
+                        {
+                            os << lon << "   " << lat << '\n';
+                        }
                     }
                     else
                     {

@@ -294,9 +294,9 @@ else
 }
 systemVerbose(systemCall);
 
-// plot filled contours
+// plot coloured contours
 systemCall = "gmt pscontour '" + tmpFile + "' -CcolourScale.cpt"
-                       + " -Sp -A- -W+1p -J -R -h1 -O -K >> " + epsFile;
+                       + " -Sp -A- -W+0.5p -J -R -h1 -O -K >> " + epsFile;
 systemVerbose(systemCall);
 
 // Plot legend

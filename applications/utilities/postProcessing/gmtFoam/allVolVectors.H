@@ -139,9 +139,12 @@ scalar maxMagU = 0;
                 sinLat = max(min(sinLat, 1), -1);
                 scalar lat = radToDeg*Foam::asin(sinLat);
                 scalar lon = radToDeg*Foam::atan2((p&ydir), (p&xdir));
-                os << lon << "   " << lat << "   "
-                   << lon + vectorScale*((Uf[faci]) & (lonHat[faci])) << "   "
-                   << lat + vectorScale*((Uf[faci]) & (latHat[faci])) << '\n';
+                scalar lonEnd = lon + vectorScale*((Uf[faci]) & (lonHat[faci]));
+                if (lonEnd >= -180 && lonEnd <= 180 && sign(lon) == sign(lonEnd))
+                {
+                    os << lon << "   " << lat << "   " << lonEnd << "   "
+                       << lat + vectorScale*((Uf[faci]) & (latHat[faci])) << '\n';
+                }
             }
             else
             {

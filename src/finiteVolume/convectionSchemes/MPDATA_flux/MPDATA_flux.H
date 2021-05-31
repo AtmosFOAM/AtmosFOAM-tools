@@ -22,18 +22,19 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::fv::MPDATA_CN
+    Foam::fv::MPDATA_flux
 
 Description
-    MPDATA_CN is MPDATA with Crank-Nicholson time stepping.
+    MPDATA_flux is MPDATA with Crank-Nicholson time stepping as a flux-form
+    semi-Lagrangian scheme
 
 SourceFiles
-    MPDATA_CN.C
+    MPDATA_flux.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_CN_H
-#define MPDATA_CN_H
+#ifndef MPDATA_flux_H
+#define MPDATA_flux_H
 
 #include "upwind.H"
 #include "gaussConvectionScheme.H"
@@ -49,11 +50,11 @@ namespace fv
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA_CN Declaration
+                           Class MPDATA_flux Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA_CN
+class MPDATA_flux
 :
     public fv::convectionScheme<Type>
 {
@@ -64,9 +65,6 @@ class MPDATA_CN
         
         // MPDATA gauge (the minimum allowed value)
         const scalar gauge_;
-        
-        // Crank-Nicolson Off Centering
-        const scalar offCentre_;
 
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
@@ -80,24 +78,22 @@ class MPDATA_CN
 public:
 
     //- Runtime type information
-    TypeName("MPDATA_CN");
+    TypeName("MPDATA_flux");
 
     // Constructors
 
         //- Construct from components
-        MPDATA_CN
+        MPDATA_flux
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
             label nCorr__ = 1,
-            scalar gauge__ = 0,
-            scalar offCentre__ = 0.5
+            scalar gauge__ = 0
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
             nCorr_(nCorr__),
             gauge_(gauge__),
-            offCentre_(offCentre__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -132,7 +128,7 @@ public:
         {}
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA_CN
+        MPDATA_flux
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -142,7 +138,6 @@ public:
             convectionScheme<Type>(mesh, faceFlux),
             nCorr_(readLabel(is)),
             gauge_(readScalar(is)),
-            offCentre_(readScalar(is)),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -177,10 +172,10 @@ public:
         {}
         
         //- Disallow default bitwise copy construction
-        MPDATA_CN(const MPDATA_CN&) = delete;
+        MPDATA_flux(const MPDATA_flux&) = delete;
 
         //- Destructor
-        ~MPDATA_CN()
+        ~MPDATA_flux()
         {
             delete anteDPtr_;
         }
@@ -206,7 +201,8 @@ public:
         void calculateAnteD
         (
             const surfaceScalarField& faceFlux,
-            const GeometricField<Type, fvPatchField, volMesh>& vf
+            const GeometricField<Type, fvPatchField, volMesh>& vf,
+            const surfaceScalarField& offCentre
         ) const;
 
         tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> interpolate
@@ -237,7 +233,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA_CN&) = delete;
+        void operator=(const MPDATA_flux&) = delete;
 };
 
 
@@ -252,7 +248,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    #include "MPDATA_CN.C"
+    #include "MPDATA_flux.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

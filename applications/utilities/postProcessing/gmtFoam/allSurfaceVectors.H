@@ -150,7 +150,11 @@ scalar maxMagU = 0;
                            - 0.5*vectorScale*((Uf[faci]) & (lonHat[faci]));
                 scalar lon2 = lon + vectorScale*((Uf[faci]) & (lonHat[faci]));
                 scalar lat2 = lat + vectorScale*((Uf[faci]) & (latHat[faci]));
-                if (lon2 >= -180 && lon2 <= 180)
+                if
+                (
+                    sign(lon2 - lonMin) == sign(lon - lonMin)
+                 && lon2 < 180 && lon2 > -180 && lon < 180 && lon > -180
+                )
                 {
                     os << lon << "   " << lat << "   " << lon2 << "   " << lat2
                        << '\n';

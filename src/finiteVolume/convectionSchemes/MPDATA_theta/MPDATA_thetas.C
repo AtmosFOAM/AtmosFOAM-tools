@@ -23,11 +23,11 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "MPDATA.H"
+#include "MPDATA_theta.H"
 #include "fvMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makeFvConvectionTypeScheme(MPDATA, scalar)
+makeFvConvectionTypeScheme(MPDATA_theta, scalar)
 
 // ************************************************************************* //
