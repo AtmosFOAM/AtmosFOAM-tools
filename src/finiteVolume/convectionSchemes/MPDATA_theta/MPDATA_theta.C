@@ -31,6 +31,7 @@ License
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
 #include "localMax.H"
+#include "leastSquaresGrad.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -60,43 +61,34 @@ void MPDATA_theta<Type>::calculateAnteD
     // Calculate necessary additional fields for the correction
 
     // The full velocity field from the flux and correct
-    surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
+    surfaceVectorField Uf = fvc::interpolate
+    (
+        fvc::reconstruct(faceFlux), "MPDATA_velocity"
+    );
     Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
-    // The surface normal gradient and the guass gradient interpolated to faces
-    fv::uncorrectedSnGrad<Type> snGrad(mesh);
-    GeometricField<Type, fvsPatchField, surfaceMesh> snGradT = snGrad.snGrad(vf);
-
     // The volume field interpolated onto faces
-    GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
+    GeometricField<Type, fvsPatchField, surfaceMesh> Tf
+         = fvc::interpolate(vf, "MPDATA_denom");
 
     // Stabilisation
     Tf += dimensionedScalar("", Tf.dimensions(), gauge_ + SMALL);
 
+    // Gradient of T in the cell centre to cell centre direction
+    fv::uncorrectedSnGrad<Type> snGrad(mesh);
+    surfaceScalarField snGradT = snGrad.snGrad(vf);
+
     // Full face gradient of T
-    fv::gaussGrad<Type> grad(mesh);
+    fv::leastSquaresGrad<Type> grad(mesh);
     GeometricField
     <
         typename outerProduct<vector, Type>::type,
         fvsPatchField,
         surfaceMesh
-    > gradT = linearInterpolate(grad.gradf(Tf, "gradf"));
-    gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
-         * mesh.Sf()/mesh.magSf();
-/*
-    // Find miniumum T to obey CFL limit
-    surfaceScalarField suppress = sqr(1-offCentre);
-    surfaceScalarField minTf = suppress*0.5*dt/mesh.magSf()*
-    (
-        mag(faceFlux)*snGradT
-      - max(1-2*offCentre, scalar(0))*faceFlux*dt*(Uf & gradT)*rdelta
-    );
-    //Tf = sqrt(sqr(Tf) + sqr(8*minTf));
-    Tf = max(Tf, 8*mag(minTf));
+    > gradT = fvc::interpolate(grad.grad(vf), "MPDATA_gradient");
+    gradT += (snGradT - (gradT & mesh.delta())*rdelta)
+         * mesh.delta()*rdelta;
 
-    // ante-diffusive flux for implicit or explicit advection
-    anteD() = mesh.magSf()/dt/rdelta*minTf/Tf;
-*/
     // ante-diffusive flux for implicit or explicit advection
     anteD() = 0.5/Tf*
     (
@@ -216,14 +208,18 @@ MPDATA_theta<Type>::fvcDiv
     );
     
     // Create temporary field to advect and the temporary divergence field
-    GeometricField<Type, fvPatchField, volMesh> T = vf;
-
+    GeometricField<Type, fvPatchField, volMesh> T
+    (
+        IOobject(vf.name(), mesh.time().timeName(), mesh),
+        vf - dt*tConvection(),
+        vf.boundaryField().types()
+    );
+    
     // Calculte the implicit part of the advection
     EulerDdtScheme<Type> backwardEuler(this->mesh());
     fvMatrix<Type> fvmT
     (
         backwardEuler.fvmDdt(T)
-      + tConvection()
       + upwindConvect().fvmDiv(offCentre*faceFlux, T)
     );
     fvmT.solve();

@@ -30,6 +30,7 @@ License
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
+#include "leastSquaresGrad.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -72,15 +73,15 @@ void MPDATA_CN<Type>::calculateAnteD
     Tf += dimensionedScalar("", Tf.dimensions(), gauge_ + SMALL);
 
     // Full face gradient of T
-    fv::gaussGrad<Type> grad(mesh);
+    fv::leastSquaresGrad<Type> grad(mesh);
     GeometricField
     <
         typename outerProduct<vector, Type>::type,
         fvsPatchField,
         surfaceMesh
-    > gradT = linearInterpolate(grad.gradf(Tf, "gradf"));
-    gradT += (snGradT - (gradT & mesh.Sf())/mesh.magSf())
-         * mesh.Sf()/mesh.magSf();
+    > gradT = linearInterpolate(grad.grad(vf));
+    gradT += (snGradT - (gradT & mesh.delta())*rdelta)
+         * mesh.delta()*rdelta;
 
     // ante-diffusive flux for implicit or explicit advection
     anteD() = 0.5/Tf*
@@ -193,14 +194,18 @@ MPDATA_CN<Type>::fvcDiv
     );
     
     // Create temporary field to advect and the temporary divergence field
-    GeometricField<Type, fvPatchField, volMesh> T = vf;
-
+    GeometricField<Type, fvPatchField, volMesh> T
+    (
+        IOobject(vf.name(), mesh.time().timeName(), mesh),
+        vf - dt*tConvection(),
+        vf.boundaryField().types()
+    );
+    
     // Calculte the implicit part of the advection
     EulerDdtScheme<Type> backwardEuler(this->mesh());
     fvMatrix<Type> fvmT
     (
         backwardEuler.fvmDdt(T)
-      + tConvection()
       + upwindConvect().fvmDiv(offCentre_*faceFlux, T)
     );
     fvmT.solve();

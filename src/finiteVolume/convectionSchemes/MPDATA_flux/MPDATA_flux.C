@@ -60,7 +60,8 @@ void MPDATA_flux<Type>::calculateAnteD
     // Calculate necessary additional fields for the correction
 
     // The volume field interpolated onto faces
-    GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
+    GeometricField<Type, fvsPatchField, surfaceMesh> Tf
+         = fvc::interpolate(vf, "MPDATA_denom");
 
     // Stabilisation
     Tf += dimensionedScalar("", Tf.dimensions(), gauge_ + SMALL);
@@ -189,14 +190,18 @@ MPDATA_flux<Type>::fvcDiv
     );
     
     // Create temporary field to advect and the temporary divergence field
-    GeometricField<Type, fvPatchField, volMesh> T = vf;
-
+    GeometricField<Type, fvPatchField, volMesh> T
+    (
+        IOobject(vf.name(), mesh.time().timeName(), mesh),
+        vf - dt*tConvection(),
+        vf.boundaryField().types()
+    );
+    
     // Calculte the implicit part of the advection
     EulerDdtScheme<Type> backwardEuler(this->mesh());
     fvMatrix<Type> fvmT
     (
         backwardEuler.fvmDdt(T)
-      + tConvection()
       + upwindConvect().fvmDiv(offCentre*faceFlux, T)
     );
     fvmT.solve();

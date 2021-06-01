@@ -37,6 +37,7 @@ SourceFiles
 
 #include "upwind.H"
 #include "gaussConvectionScheme.H"
+#include "dictionary.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,6 +59,9 @@ class MPDATA_theta
     public fv::convectionScheme<Type>
 {
     // Private Data
+
+        //- Dictionary for reading the MPDATA parameters
+        dictionary dict_;
 
         //- Number of corrections (1 is normal)
         label nCorr_;
@@ -91,6 +95,7 @@ public:
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
+            dict_(),
             nCorr_(nCorr__),
             gauge_(gauge__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
@@ -135,8 +140,9 @@ public:
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
-            nCorr_(readLabel(is)),
-            gauge_(readScalar(is)),
+            dict_(is),
+            nCorr_(readLabel(dict_.lookup("nCorr"))),
+            gauge_(readScalar(dict_.lookup("gauge"))),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
