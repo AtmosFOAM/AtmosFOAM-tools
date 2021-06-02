@@ -22,22 +22,30 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::fv::MPDATA_flux
+    Foam::fv::MPDATA
 
 Description
-    MPDATA_flux is MPDATA with Crank-Nicholson time stepping as a flux-form
-    semi-Lagrangian scheme
-
+    MPDATA is MPDATA with variable off-centred time stepping.
+    Parameters set in a dictionary:
+        nCorr 2;    // Number of correctors (default 1)
+        gauge 1;    // MPDATA gauge mimimum (default 0)
+        offCentre -1;   // "-1" implies set by Courant number or value [0,1]
+        timeCorrector advective; // flux, advective or none
+        FCTlimit false; // Apply Zalesak FCT, true or false
+        FCTmin   0;     // If true give min and max or equal for monotone
+        FCTmax   0;     // If true give min and max or equal for monotone
+    
 SourceFiles
-    MPDATA_flux.C
+    MPDATA.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_flux_H
-#define MPDATA_flux_H
+#ifndef MPDATA_H
+#define MPDATA_H
 
 #include "upwind.H"
 #include "gaussConvectionScheme.H"
+#include "dictionary.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -50,21 +58,34 @@ namespace fv
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA_flux Declaration
+                           Class MPDATA Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA_flux
+class MPDATA
 :
     public fv::convectionScheme<Type>
 {
     // Private Data
 
+        //- Dictionary for reading the MPDATA parameters
+        dictionary dict_;
+
         //- Number of corrections (1 is normal)
-        label nCorr_;
+        const label nCorr_;
         
         // MPDATA gauge (the minimum allowed value)
         const scalar gauge_;
+        
+        // Off centering uniform value [0,1] or variable (value <0)
+        const scalar offCentre_;
+        
+        // Use advective or flux form time corrector or none
+        word timeCorrector_;
+        
+        // Apply Zalesak FCT correction with given limits (equal for monotone)
+        const Switch FCTlimit_;
+        const Type FCTmin_, FCTmax_;
 
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
@@ -78,22 +99,33 @@ class MPDATA_flux
 public:
 
     //- Runtime type information
-    TypeName("MPDATA_flux");
+    TypeName("MPDATA");
 
     // Constructors
 
         //- Construct from components
-        MPDATA_flux
+        MPDATA
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
             label nCorr__ = 1,
-            scalar gauge__ = 0
+            scalar gauge__ = 0,
+            scalar offCentre__ = 0,
+            word timeCorrector__ = "advective",
+            Switch FCTlimit__ = false,
+            scalar FCTmin__ = 0,
+            scalar FCTmax__ = 0
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
+            dict_(),
             nCorr_(nCorr__),
             gauge_(gauge__),
+            offCentre_(offCentre__),
+            timeCorrector_(timeCorrector__),
+            FCTlimit_(FCTlimit__),
+            FCTmin_(FCTmin__),
+            FCTmax_(FCTmax__),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -128,7 +160,7 @@ public:
         {}
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA_flux
+        MPDATA
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -136,8 +168,14 @@ public:
         )
         :
             convectionScheme<Type>(mesh, faceFlux),
-            nCorr_(readLabel(is)),
-            gauge_(readScalar(is)),
+            dict_(is),
+            nCorr_(readLabel(dict_.lookup("nCorr"))),
+            gauge_(readScalar(dict_.lookup("gauge"))),
+            offCentre_(readScalar(dict_.lookup("offCentre"))),
+            timeCorrector_(dict_.lookupOrDefault<word>("timeCorrector", "advective")),
+            FCTlimit_(dict_.lookup("FCTlimit")),
+            FCTmin_(dict_.lookupOrDefault<scalar>("FCTmin", scalar(0))),
+            FCTmax_(dict_.lookupOrDefault<scalar>("FCTmax", scalar(0))),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -169,13 +207,28 @@ public:
                     )
                 )
             )
-        {}
+        {
+            if (offCentre_ >= 0.5 - SMALL) timeCorrector_ = "none";
+        
+            else if
+            (
+                timeCorrector_ != "advective"
+             && timeCorrector_ != "flux"
+             && timeCorrector_ != "none"
+            )
+            {
+                FatalErrorIn("MPDATA::MPDATA")
+                    << "timeCorrector must be one of advective, flux or none but "
+                    << timeCorrector_ << " was given" << exit(FatalError);
+                
+            }
+        }
         
         //- Disallow default bitwise copy construction
-        MPDATA_flux(const MPDATA_flux&) = delete;
+        MPDATA(const MPDATA&) = delete;
 
         //- Destructor
-        ~MPDATA_flux()
+        ~MPDATA()
         {
             delete anteDPtr_;
         }
@@ -233,7 +286,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA_flux&) = delete;
+        void operator=(const MPDATA&) = delete;
 };
 
 
@@ -248,7 +301,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    #include "MPDATA_flux.C"
+    #include "MPDATA.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

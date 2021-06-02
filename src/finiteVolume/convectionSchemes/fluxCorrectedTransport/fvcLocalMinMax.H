@@ -21,13 +21,78 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+InNamespace
+    Foam::fvc
+
+Description
+    Functions to set the volume field based on the min and max of all neighbours
+
+SourceFiles
+    fvcLocalMinMax.C
+
 \*---------------------------------------------------------------------------*/
 
-#include "fluxCorrectedTransport.H"
-#include "fvMesh.H"
+
+#ifndef fvcLocalMinMax_H
+#define fvcLocalMinMax_H
+
+#include "primitiveFieldsFwd.H"
+#include "volFieldsFwd.H"
+#include "surfaceFieldsFwd.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makeFvConvectionTypeScheme(fluxCorrectedTransport, scalar)
+namespace Foam
+{
+/*---------------------------------------------------------------------------*\
+                     Namespace fvc functions Declaration
+\*---------------------------------------------------------------------------*/
+
+namespace fvc
+{
+    void localMin
+    (
+        Field<scalar>&,
+        const surfaceScalarField&
+    );
+
+    tmp<volScalarField>
+    localMin
+    (
+        const surfaceScalarField&
+    );
+
+    tmp<volScalarField>
+    localMin
+    (
+        const tmp<surfaceScalarField>&
+    );
+
+    void localMax
+    (
+        Field<scalar>&,
+        const surfaceScalarField&
+    );
+
+    tmp<volScalarField>
+    localMax
+    (
+        const surfaceScalarField&
+    );
+
+    tmp<volScalarField>
+    localMax
+    (
+        const tmp<surfaceScalarField>&
+    );
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#endif
 
 // ************************************************************************* //

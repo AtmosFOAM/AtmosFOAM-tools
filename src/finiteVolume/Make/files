@@ -1,10 +1,6 @@
-convectionSchemes/MPDATA_FB/MPDATA_FBs.C
-convectionSchemes/MPDATA_CN/MPDATA_CNs.C
-convectionSchemes/MPDATA_theta/MPDATA_thetas.C
-convectionSchemes/MPDATA_flux/MPDATA_fluxs.C
+convectionSchemes/MPDATA/MPDATAs.C
 convectionSchemes/fluxCorrectedTransport/fvcFluxLimit.C
-convectionSchemes/fluxCorrectedTransport/fluxCorrectedTransports.C
-convectionSchemes/CrankNicolsonConvection/CrankNicolsonConvections.C
+convectionSchemes/fluxCorrectedTransport/fvcLocalMinMax.C
 interpolation/approxTypes/approxType.C
 fvc/fvcCurlf.C
 fvc/fvcCof.C
@@ -25,8 +21,6 @@ interpolation/surfaceInterpolation/schemes/biLinearUpwindFit/biLinearUpwindFit.C
 interpolation/surfaceInterpolation/limitedSchemes/TVDlimited/TVDlimited.C
 interpolation/surfaceInterpolation/limitedSchemes/smoothScheme/smoothScheme.C
 */
-interpolation/surfaceInterpolation/schemes/MPDATA/MPDATA_explicit.C
-interpolation/surfaceInterpolation/schemes/MPDATA/MPDATA_implicit.C
 interpolation/surfaceInterpolation/schemes/APVM/APVM.C
 interpolation/surfaceInterpolation/schemes/linearUpwindDebug/linearUpwindDebug.C
 interpolation/surfaceInterpolation/schemes/cubicUpwindCPCFit/cubicUpwindCPCFit.C

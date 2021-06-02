@@ -23,14 +23,16 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "MPDATA_CN.H"
+#include "MPDATA.H"
 #include "fvMatrices.H"
 #include "fvcDiv.H"
 #include "EulerDdtScheme.H"
 #include "fvc.H"
 #include "uncorrectedSnGrad.H"
 #include "CourantNoFunc.H"
+#include "localMax.H"
 #include "leastSquaresGrad.H"
+#include "fvcFluxLimit.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,10 +47,11 @@ namespace fv
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class Type>
-void MPDATA_CN<Type>::calculateAnteD
+void MPDATA<Type>::calculateAnteD
 (
     const surfaceScalarField& faceFlux,
-    const GeometricField<Type, fvPatchField, volMesh>& vf
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    const surfaceScalarField& offCentre
 ) const
 {
     // Reference to the mesh, time step and mesh spacing
@@ -58,37 +61,49 @@ void MPDATA_CN<Type>::calculateAnteD
 
     // Calculate necessary additional fields for the correction
 
-    // The full velocity field from the flux and correct
-    surfaceVectorField Uf = linearInterpolate(fvc::reconstruct(faceFlux));
-    Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
-
-    // The surface normal gradient and the guass gradient interpolated to faces
-    fv::uncorrectedSnGrad<Type> snGrad(mesh);
-    GeometricField<Type, fvsPatchField, surfaceMesh> snGradT = snGrad.snGrad(vf);
-
     // The volume field interpolated onto faces
-    GeometricField<Type, fvsPatchField, surfaceMesh> Tf = linearInterpolate(vf);
+    GeometricField<Type, fvsPatchField, surfaceMesh> Tf
+         = fvc::interpolate(vf, "MPDATA_denom");
 
     // Stabilisation
     Tf += dimensionedScalar("", Tf.dimensions(), gauge_ + SMALL);
 
-    // Full face gradient of T
-    fv::leastSquaresGrad<Type> grad(mesh);
-    GeometricField
-    <
-        typename outerProduct<vector, Type>::type,
-        fvsPatchField,
-        surfaceMesh
-    > gradT = linearInterpolate(grad.grad(vf));
-    gradT += (snGradT - (gradT & mesh.delta())*rdelta)
-         * mesh.delta()*rdelta;
+    // Gradient of T in the cell centre to cell centre direction
+    fv::uncorrectedSnGrad<Type> snGrad(mesh);
+    surfaceScalarField snGradT = snGrad.snGrad(vf);
 
-    // ante-diffusive flux for implicit or explicit advection
-    anteD() = 0.5/Tf*
-    (
-        mag(faceFlux)*snGradT/rdelta
-      - max(1-2*offCentre_, scalar(0))*faceFlux*dt*(Uf & gradT)
-    );
+    // The correction in space
+    anteD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta;
+    
+    // Apply a correction in time if needed
+    if (timeCorrector_ == "advective")
+    {
+        // The full velocity field from the flux and correct
+        surfaceVectorField Uf = fvc::interpolate
+        (
+            fvc::reconstruct(faceFlux), "MPDATA_velocity"
+        );
+        Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
+
+        // Full face gradient of T
+        fv::leastSquaresGrad<Type> grad(mesh);
+        GeometricField
+        <
+            typename outerProduct<vector, Type>::type,
+            fvsPatchField,
+            surfaceMesh
+        > gradT = fvc::interpolate(grad.grad(vf), "MPDATA_gradient");
+        gradT += (snGradT - (gradT & mesh.delta())*rdelta)
+             * mesh.delta()*rdelta;
+
+        // add advetive form time correction
+        anteD() -= max(1-2*offCentre, scalar(0))*0.5/Tf*faceFlux*dt*(Uf & gradT);
+    }
+    else if(timeCorrector_ == "flux")
+    {
+        anteD() -= max(1-2*offCentre, scalar(0))*0.5/Tf*faceFlux*dt
+         *fvc::interpolate(fvc::div(faceFlux, vf, "MPDATA_div"), "MPDATA_idiv");
+    }
     
     // Limit to obey Courant number restriction
     anteD() = sign(anteD())*min(mag(anteD()), 0.25*mesh.magSf()/rdelta/dt);
@@ -116,7 +131,7 @@ void MPDATA_CN<Type>::calculateAnteD
 
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-MPDATA_CN<Type>::interpolate
+MPDATA<Type>::interpolate
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -137,7 +152,7 @@ MPDATA_CN<Type>::interpolate
 
 template<class Type>
 tmp<GeometricField<Type, fvsPatchField, surfaceMesh>>
-MPDATA_CN<Type>::flux
+MPDATA<Type>::flux
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -149,7 +164,7 @@ MPDATA_CN<Type>::flux
 
 template<class Type>
 tmp<fvMatrix<Type>>
-MPDATA_CN<Type>::fvmDiv
+MPDATA<Type>::fvmDiv
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -172,7 +187,7 @@ MPDATA_CN<Type>::fvmDiv
 
 template<class Type>
 tmp<GeometricField<Type, fvPatchField, volMesh>>
-MPDATA_CN<Type>::fvcDiv
+MPDATA<Type>::fvcDiv
 (
     const surfaceScalarField& faceFlux,
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -182,10 +197,30 @@ MPDATA_CN<Type>::fvcDiv
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
 
+    localMax<scalar> maxInterp(this->mesh());
+    const surfaceScalarField offCentre = offCentre_ < 0 ?
+        surfaceScalarField
+        (
+            maxInterp.interpolate
+            (
+                volScalarField
+                (
+                    max(1-1/(CourantNo(faceFlux, dt) + SMALL), scalar(0))
+                )
+            )
+        ) :
+        surfaceScalarField
+        (
+            IOobject("offCentre", mesh.time().timeName(), mesh),
+            mesh,
+            dimensionedScalar("", dimless, offCentre_),
+            "fixedValue"
+        );
+
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
     (
-        upwindConvect().fvcDiv((1-offCentre_)*faceFlux, vf)
+        upwindConvect().fvcDiv((1-offCentre)*faceFlux, vf)
     );
 
     tConvection.ref().rename
@@ -202,34 +237,57 @@ MPDATA_CN<Type>::fvcDiv
     );
     
     // Calculte the implicit part of the advection
-    EulerDdtScheme<Type> backwardEuler(this->mesh());
-    fvMatrix<Type> fvmT
-    (
-        backwardEuler.fvmDdt(T)
-      + upwindConvect().fvmDiv(offCentre_*faceFlux, T)
-    );
-    fvmT.solve();
+    if (mag(offCentre_) > SMALL)
+    {
+        EulerDdtScheme<Type> backwardEuler(this->mesh());
+        fvMatrix<Type> fvmT
+        (
+            backwardEuler.fvmDdt(T)
+          + upwindConvect().fvmDiv(offCentre*faceFlux, T)
+        );
+        fvmT.solve();
     
-    // Add the low order implicit divergence
-    tConvection.ref() += upwindConvect().fvcDiv(offCentre_*faceFlux, T);
-
+        // Add the low order implicit divergence
+        tConvection.ref() += upwindConvect().fvcDiv(offCentre*faceFlux, T);
+    }
+    
     // Calculate, apply (and update) the correction
-    if (nCorr_ > 0) calculateAnteD(faceFlux, vf);
+    if (nCorr_ > 0) calculateAnteD(faceFlux, vf, offCentre);
     for(label iCorr =1; iCorr < nCorr_; iCorr++)
     {
         calculateAnteD
         (
             faceFlux,
-            T - dt*anteDConvect().fvcDiv(anteD(), T)
+            T - dt*anteDConvect().fvcDiv(anteD(), T),
+            offCentre
         );
     }
     if (nCorr_ > 0)
     {
-        tConvection.ref() += anteDConvect().fvcDiv
-        (
-            anteD(),
-            T+dimensionedScalar("", T.dimensions(), gauge_)
-        );
+        dimensionedScalar gauge("gauge", T.dimensions(), gauge_);
+        dimensionedScalar FCTmin("FCTmin", T.dimensions(), FCTmin_);
+        dimensionedScalar FCTmax("FCTmax", T.dimensions(), FCTmax_);
+        T += gauge;
+        anteD() *= anteDConvect().interpolate(anteD(), T);
+        
+        // Limit the fluxes with Zalesak FCT limiter if needed
+        if (FCTlimit_)
+        {
+            if (FCTmin_ < FCTmax_)
+            {
+                fvc::fluxLimit(anteD(), T, FCTmin+gauge, FCTmax+gauge, dt);
+            }
+            else if (mag(offCentre_) < SMALL)
+            {
+                fvc::fluxLimit(anteD(), T, vf+gauge, dt);
+            }
+            else
+            {
+                fvc::fluxLimit(anteD(), T, dt);
+            }
+        }
+    
+        tConvection.ref() += fvc::div(anteD());
     }
     
     return tConvection;

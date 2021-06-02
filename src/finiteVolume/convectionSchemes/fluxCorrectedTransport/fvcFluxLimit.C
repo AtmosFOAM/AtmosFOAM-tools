@@ -26,6 +26,11 @@ License
 #include "fvcFluxLimit.H"
 #include "surfaceFields.H"
 #include "volFields.H"
+#include "localMax.H"
+#include "localMin.H"
+#include "fvcLocalMinMax.H"
+#include "upwind.H"
+#include "downwind.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -41,37 +46,87 @@ namespace fvc
 void fluxLimit
 (
     surfaceScalarField& fluxCorr,
-    const volScalarField& Tint,
-    const volScalarField& Told
+    const volScalarField& Td,
+    const volScalarField& Told,
+    const dimensionedScalar& dt
 )
 {
     const fvMesh& mesh = fluxCorr.mesh();
-    const labelUList& owner = mesh.owner();
-    const labelUList& neighbour = mesh.neighbour();
-    
-    // Fluxes into and out of each cell
-    volScalarField Pp = fvc::surfaceIntegrateIn(fluxCorr);
-    volScalarField Pm = fvc::surfaceIntegrateOut(fluxCorr);
     
     // Local extrema
-    volScalarField Tmin = min(Tint, Told);
-    volScalarField Tmax = max(Tint, Told);
-        
-    for(label faceI = 0; faceI < mesh.nInternalFaces(); faceI++)
-    {
-        label own = owner[faceI];
-        label nei = neighbour[faceI];
-
-        Tmax[nei] = max(Tmax[nei], max(Tint[own], Told[own]));
-        Tmax[own] = max(Tmax[own], max(Tint[nei], Told[nei]));
-        Tmin[nei] = min(Tmin[nei], min(Tint[own], Told[own]));
-        Tmin[own] = min(Tmin[own], min(Tint[nei], Told[nei]));
-    }
+    volScalarField Tmin = min(Td, Told);
+    volScalarField Tmax = max(Td, Told);
+    Foam::localMax<scalar> maxInterp(mesh);
+    Foam::localMin<scalar> minInterp(mesh);
+    surfaceScalarField Tfmax = maxInterp.interpolate(Tmax);
+    surfaceScalarField Tfmin = minInterp.interpolate(Tmin);
+    Tmax = fvc::localMax(Tfmax);
+    Tmin = fvc::localMin(Tfmin);
 
     // Amount each cell can rise or fall by
-    volScalarField Qp = Tmax - Tint;
-    volScalarField Qm = Tint - Tmin;
+    volScalarField Qp = Tmax - Td;
+    volScalarField Qm = Td - Tmin;
 
+    fluxLimitFromQ(fluxCorr, Qp, Qm, dt);
+}
+
+
+void fluxLimit
+(
+    surfaceScalarField& fluxCorr,
+    const volScalarField& Td,
+    const dimensionedScalar& dt
+)
+{
+    const fvMesh& mesh = fluxCorr.mesh();
+    
+    // Local extrema
+    Foam::localMax<scalar> maxInterp(mesh);
+    Foam::localMin<scalar> minInterp(mesh);
+    surfaceScalarField Tfmax = maxInterp.interpolate(Td);
+    surfaceScalarField Tfmin = minInterp.interpolate(Td);
+    volScalarField Tmax = fvc::localMax(Tfmax);
+    volScalarField Tmin = fvc::localMin(Tfmin);
+
+    // Amount each cell can rise or fall by
+    volScalarField Qp = Tmax - Td;
+    volScalarField Qm = Td - Tmin;
+
+    fluxLimitFromQ(fluxCorr, Qp, Qm, dt);
+}
+
+
+void fluxLimit
+(
+    surfaceScalarField& fluxCorr,
+    const volScalarField& Td,
+    const dimensionedScalar& Tmin,
+    const dimensionedScalar& Tmax,
+    const dimensionedScalar& dt
+)
+{
+    // Amount each cell can rise or fall by
+    volScalarField Qp = Tmax - Td;
+    volScalarField Qm = Td - Tmin;
+
+    fluxLimitFromQ(fluxCorr, Qp, Qm, dt);
+}
+
+
+void fluxLimitFromQ
+(
+    surfaceScalarField& fluxCorr,
+    const volScalarField& Qp,
+    const volScalarField& Qm,
+    const dimensionedScalar& dt
+)
+{
+    const fvMesh& mesh = fluxCorr.mesh();
+    
+    // Fluxes into and out of each cell
+    volScalarField Pp = dt*fvc::surfaceIntegrateIn(fluxCorr);
+    volScalarField Pm = dt*fvc::surfaceIntegrateOut(fluxCorr);
+    
     // Ratios
     dimensionedScalar Psmall("Psmall", Pp.dimensions(), SMALL);
     volScalarField Rp = min(1., Qp/max(Pp, Psmall));
@@ -83,30 +138,15 @@ void fluxLimit
     }
     
     // Limit the fluxes
-    for(label faceI = 0; faceI < mesh.nInternalFaces(); faceI++)
-    {
-        label own = owner[faceI];
-        label nei = neighbour[faceI];
-        
-        // Do not correct if the corrections are down gradient
-        if (fluxCorr[faceI] * (Tint[nei] - Tint[own]) < 0)
-        {
-            fluxCorr[faceI] = 0;
-        }
-        else if (fluxCorr[faceI] > 0)
-        {
-            fluxCorr[faceI] *= min(Rp[nei], Rm[own]);
-        }
-        else
-        {
-            fluxCorr[faceI] *= min(Rp[own], Rm[nei]);
-        }
-    }
-    // Zero correction at boundaries
-    for(label ib = 0; ib < fluxCorr.boundaryField().size(); ib++)
-    {
-        fluxCorr.boundaryFieldRef()[ib] *= 0;
-    }
+    upwind<scalar> up(mesh, mesh.magSf());
+    downwind<scalar> down(mesh, mesh.magSf());
+    surfaceScalarField RpOwn = up.interpolate(Rp);
+    surfaceScalarField RpNei = down.interpolate(Rp);
+    surfaceScalarField RmOwn = up.interpolate(Rm);
+    surfaceScalarField RmNei = down.interpolate(Rm);
+    
+    fluxCorr *= 0.5*(1+sign(fluxCorr))*min(RpNei, RmOwn)
+              + 0.5*(1-sign(fluxCorr))*min(RpOwn, RmNei);
 }
 
 
