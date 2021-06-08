@@ -86,6 +86,8 @@ class MPDATA
         // Apply Zalesak FCT correction with given limits (equal for monotone)
         const Switch FCTlimit_;
         const Type FCTmin_, FCTmax_;
+        
+        const surfaceScalarField faceVol_;
 
         //- ante-diffusive flux
         mutable surfaceScalarField* anteDPtr_;
@@ -126,6 +128,7 @@ public:
             FCTlimit_(FCTlimit__),
             FCTmin_(FCTmin__),
             FCTmax_(FCTmax__),
+            faceVol_(mesh.Sf() & mesh.delta()),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (
@@ -176,6 +179,7 @@ public:
             FCTlimit_(dict_.lookup("FCTlimit")),
             FCTmin_(dict_.lookupOrDefault<scalar>("FCTmin", scalar(0))),
             FCTmax_(dict_.lookupOrDefault<scalar>("FCTmax", scalar(0))),
+            faceVol_(mesh.Sf() & mesh.delta()),
             anteDPtr_(new surfaceScalarField(faceFlux)),
             tupwindConvection_
             (

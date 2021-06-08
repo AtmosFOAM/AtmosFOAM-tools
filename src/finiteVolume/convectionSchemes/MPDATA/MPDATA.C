@@ -106,7 +106,7 @@ void MPDATA<Type>::calculateAnteD
     }
     
     // Limit to obey Courant number restriction
-    anteD() = sign(anteD())*min(mag(anteD()), 0.25*mesh.magSf()/rdelta/dt);
+    anteD() = sign(anteD())*min(mag(anteD()), faceVol_/(2*dt));
 
 /*    // Write out the ante-diffusive velocity if needed
     if (mesh.time().writeTime())
@@ -198,16 +198,20 @@ MPDATA<Type>::fvcDiv
     const dimensionedScalar& dt = mesh.time().deltaT();
 
     localMax<scalar> maxInterp(this->mesh());
+    surfaceScalarField Cf = 2*dt*mag(faceFlux)/faceVol_;
+    Info << "Courant number on faces goes from " << min(Cf).value() << " to "
+         << max(Cf).value() << endl;
     const surfaceScalarField offCentre = offCentre_ < 0 ?
         surfaceScalarField
         (
-            maxInterp.interpolate
+/*            maxInterp.interpolate
             (
                 volScalarField
                 (
                     max(1-1/(CourantNo(faceFlux, dt) + SMALL), scalar(0))
                 )
-            )
+            )*/
+            max(1-1/(Cf+SMALL), scalar(0))
         ) :
         surfaceScalarField
         (
@@ -216,6 +220,8 @@ MPDATA<Type>::fvcDiv
             dimensionedScalar("", dimless, offCentre_),
             "fixedValue"
         );
+    Info << "offCentre goes from " << min(offCentre).value() << " to " 
+         << max(offCentre).value() << endl;
 
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
@@ -252,7 +258,8 @@ MPDATA<Type>::fvcDiv
     }
     
     // Calculate, apply (and update) the correction
-    if (nCorr_ > 0) calculateAnteD(faceFlux, vf, offCentre);
+    //if (nCorr_ > 0) calculateAnteD(faceFlux, vf, offCentre);
+    if (nCorr_ > 0) calculateAnteD(faceFlux, T, offCentre);
     for(label iCorr =1; iCorr < nCorr_; iCorr++)
     {
         calculateAnteD
@@ -265,8 +272,8 @@ MPDATA<Type>::fvcDiv
     if (nCorr_ > 0)
     {
         dimensionedScalar gauge("gauge", T.dimensions(), gauge_);
-        dimensionedScalar FCTmin("FCTmin", T.dimensions(), FCTmin_);
-        dimensionedScalar FCTmax("FCTmax", T.dimensions(), FCTmax_);
+        dimensionedScalar FCTmin("FCTmin", T.dimensions(), FCTmin_+gauge_);
+        dimensionedScalar FCTmax("FCTmax", T.dimensions(), FCTmax_+gauge_);
         T += gauge;
         anteD() *= anteDConvect().interpolate(anteD(), T);
         
@@ -275,7 +282,7 @@ MPDATA<Type>::fvcDiv
         {
             if (FCTmin_ < FCTmax_)
             {
-                fvc::fluxLimit(anteD(), T, FCTmin+gauge, FCTmax+gauge, dt);
+                fvc::fluxLimit(anteD(), T, FCTmin, FCTmax, dt);
             }
             else if (mag(offCentre_) < SMALL)
             {
