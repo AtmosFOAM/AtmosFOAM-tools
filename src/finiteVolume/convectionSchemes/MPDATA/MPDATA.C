@@ -33,6 +33,7 @@ License
 #include "localMax.H"
 #include "leastSquaresGrad.H"
 #include "fvcFluxLimit.H"
+#include "fvcLocalMinMax.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -204,14 +205,13 @@ MPDATA<Type>::fvcDiv
     const surfaceScalarField offCentre = offCentre_ < 0 ?
         surfaceScalarField
         (
-/*            maxInterp.interpolate
+            maxInterp.interpolate
             (
                 volScalarField
                 (
-                    max(1-1/(CourantNo(faceFlux, dt) + SMALL), scalar(0))
+                    max(1-1/(fvc::localMax(Cf) + SMALL), scalar(0))
                 )
-            )*/
-            max(1-1/(Cf+SMALL), scalar(0))
+            )
         ) :
         surfaceScalarField
         (
