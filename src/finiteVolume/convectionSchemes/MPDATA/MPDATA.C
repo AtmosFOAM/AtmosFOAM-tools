@@ -202,17 +202,11 @@ MPDATA<Type>::fvcDiv
     surfaceScalarField Cf = 2*dt*mag(faceFlux)/faceVol_;
     Info << "Courant number on faces goes from " << min(Cf).value() << " to "
          << max(Cf).value() << endl;
+    Cf = maxInterp.interpolate(fvc::localMax(Cf));
+    //Cf = linearInterpolate(fvc::localMax(Cf));
+    //Cf = maxInterp.interpolate(fvc::localMax(Cf));
     const surfaceScalarField offCentre = offCentre_ < 0 ?
-        surfaceScalarField
-        (
-            maxInterp.interpolate
-            (
-                volScalarField
-                (
-                    max(1-1/(fvc::localMax(Cf) + SMALL), scalar(0))
-                )
-            )
-        ) :
+        surfaceScalarField(max(1-1/(Cf + SMALL), scalar(0))) :
         surfaceScalarField
         (
             IOobject("offCentre", mesh.time().timeName(), mesh),
