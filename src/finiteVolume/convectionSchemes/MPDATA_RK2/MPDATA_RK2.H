@@ -22,13 +22,13 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::fv::MPDATA
+    Foam::fv::MPDATA_RK2
 
 Description
-    MPDATA is MPDATA with variable off-centred time stepping.
+    MPDATA_RK2 is MPDATA_RK2 with variable off-centred time stepping.
     Parameters set in a dictionary:
         nCorr 2;    // Number of correctors (default 1)
-        gauge 1;    // MPDATA gauge mimimum (default 0)
+        gauge 1;    // MPDATA_RK2 gauge mimimum (default 0)
         offCentre -1;   // "-1" implies set by Courant number or value [0,1]
         timeCorrector advective; // flux, advective or none
         FCTlimit false; // Apply Zalesak FCT, true or false
@@ -36,12 +36,12 @@ Description
         FCTmax   0;     // If true give min and max or equal for monotone
     
 SourceFiles
-    MPDATA.C
+    MPDATA_RK2.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_H
-#define MPDATA_H
+#ifndef MPDATA_RK2_H
+#define MPDATA_RK2_H
 
 #include "upwind.H"
 #include "gaussConvectionScheme.H"
@@ -58,23 +58,23 @@ namespace fv
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA Declaration
+                           Class MPDATA_RK2 Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA
+class MPDATA_RK2
 :
     public fv::convectionScheme<Type>
 {
     // Private Data
 
-        //- Dictionary for reading the MPDATA parameters
+        //- Dictionary for reading the MPDATA_RK2 parameters
         dictionary dict_;
 
         //- Number of corrections (1 is normal)
         const label nCorr_;
         
-        // MPDATA gauge (the minimum allowed value)
+        // MPDATA_RK2 gauge (the minimum allowed value)
         const scalar gauge_;
         
         // Off centering uniform value [0,1] or variable (value <0)
@@ -101,12 +101,12 @@ class MPDATA
 public:
 
     //- Runtime type information
-    TypeName("MPDATA");
+    TypeName("MPDATA_RK2");
 
     // Constructors
 
         //- Construct from components
-        MPDATA
+        MPDATA_RK2
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -163,7 +163,7 @@ public:
         {}
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA
+        MPDATA_RK2
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -222,7 +222,7 @@ public:
              && timeCorrector_ != "none"
             )
             {
-                FatalErrorIn("MPDATA::MPDATA")
+                FatalErrorIn("MPDATA_RK2::MPDATA_RK2")
                     << "timeCorrector must be one of advective, flux, RK2 or none but "
                     << timeCorrector_ << " was given" << exit(FatalError);
                 
@@ -230,10 +230,10 @@ public:
         }
         
         //- Disallow default bitwise copy construction
-        MPDATA(const MPDATA&) = delete;
+        MPDATA_RK2(const MPDATA_RK2&) = delete;
 
         //- Destructor
-        ~MPDATA()
+        ~MPDATA_RK2()
         {
             delete anteDPtr_;
         }
@@ -259,8 +259,7 @@ public:
         void calculateAnteD
         (
             const surfaceScalarField& faceFlux,
-            const GeometricField<Type, fvPatchField, volMesh>& vf,
-            const surfaceScalarField& offCentre
+            const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const;
 
         tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> interpolate
@@ -291,7 +290,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA&) = delete;
+        void operator=(const MPDATA_RK2&) = delete;
 };
 
 
@@ -306,7 +305,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    #include "MPDATA.C"
+    #include "MPDATA_RK2.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
