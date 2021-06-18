@@ -59,6 +59,7 @@ void MPDATA<Type>::calculateAnteD
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
     const surfaceScalarField& rdelta = mesh.deltaCoeffs();
+    localMax<scalar> maxInterp(this->mesh());
 
     // Calculate necessary additional fields for the correction
 
@@ -117,8 +118,14 @@ void MPDATA<Type>::calculateAnteD
          *fvc::interpolate(fvc::div(faceFlux, vf, "MPDATA_div"), "MPDATA_idiv");
     }
     
+    // Smooth where offCentre>0
+    surfaceVectorField V("anteDV", linearInterpolate(fvc::reconstruct(anteD())));
+    surfaceScalarField imp = min(GREAT*offCentre, scalar(1));
+    imp = maxInterp.interpolate(fvc::localMax(imp));
+    imp = linearInterpolate(fvc::localMax(imp));
+    anteD() = imp*(V & mesh.Sf()) + (1-imp)*anteD();
+    
     // Limit to obey Courant number restriction
-    localMax<scalar> maxInterp(this->mesh());
     volScalarField CoV("CoV", 4*CourantNo(anteD(), dt));
     //surfaceScalarField Cof("Cof", 8*dt*mag(anteD())/faceVol_);
     //Cof = maxInterp.interpolate(fvc::localMax(Cof));

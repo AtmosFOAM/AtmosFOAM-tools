@@ -1,4 +1,5 @@
 convectionSchemes/MPDATA/MPDATAs.C
+convectionSchemes/MPDATA_RK2/MPDATA_RK2s.C
 convectionSchemes/fluxCorrectedTransport/fvcFluxLimit.C
 convectionSchemes/fluxCorrectedTransport/fvcLocalMinMax.C
 interpolation/approxTypes/approxType.C
