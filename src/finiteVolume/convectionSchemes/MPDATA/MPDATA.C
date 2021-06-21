@@ -120,7 +120,7 @@ void MPDATA<Type>::calculateAnteD
     
     // Smooth where offCentre>0
     surfaceVectorField V("anteDV", linearInterpolate(fvc::reconstruct(anteD())));
-    surfaceScalarField imp = min(GREAT*offCentre, scalar(1));
+    surfaceScalarField imp = min(2*offCentre, scalar(1));
     imp = maxInterp.interpolate(fvc::localMax(imp));
     imp = linearInterpolate(fvc::localMax(imp));
     anteD() = imp*(V & mesh.Sf()) + (1-imp)*anteD();
@@ -241,7 +241,7 @@ MPDATA<Type>::fvcDiv
     Cf = maxInterp.interpolate(fvc::localMax(Cf));
     Cf = linearInterpolate(fvc::localMax(Cf));
     const surfaceScalarField offCentre = offCentre_ < 0 ?
-        surfaceScalarField(max(1-1/(Cf + SMALL), scalar(0))) :
+        surfaceScalarField("offCentre", max(1-1/(Cf + 0.2), scalar(0))) :
         surfaceScalarField
         (
             IOobject("offCentre", mesh.time().timeName(), mesh),
@@ -251,6 +251,11 @@ MPDATA<Type>::fvcDiv
         );
     Info << "offCentre goes from " << min(offCentre).value() << " to " 
          << max(offCentre).value() << endl;
+    
+    if (mesh.time().writeTime())
+    {
+        offCentre.write();
+    }
 
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
