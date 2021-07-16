@@ -229,17 +229,16 @@ MPDATA<Type>::fvcDiv
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
 
-    localMax<scalar> maxInterp(this->mesh());
-    volScalarField C = CourantNo(faceFlux, dt);
-    //surfaceScalarField Cf = maxInterp.interpolate(C);
-    surfaceScalarField Cf = max
+    //localMax<scalar> maxInterp(this->mesh());
+    //volScalarField C = CourantNo(faceFlux, dt);
+    surfaceScalarField Cf = 2*dt*mag(faceFlux)/faceVol_;/*max
     (
         2*dt*mag(faceFlux)/faceVol_, 
         maxInterp.interpolate(C)
-    );
+    );*/
     // Smooth Cf to get smooth offCentre
-    Cf = maxInterp.interpolate(fvc::localMax(Cf));
-    Cf = linearInterpolate(fvc::localMax(Cf));
+    //Cf = maxInterp.interpolate(fvc::localMax(Cf));
+    //Cf = linearInterpolate(fvc::localMax(Cf));
     const surfaceScalarField offCentre = offCentre_ < 0 ?
         surfaceScalarField("offCentre", max(1-1/(Cf + 0.2), scalar(0))) :
         surfaceScalarField

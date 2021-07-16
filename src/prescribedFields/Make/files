@@ -7,6 +7,7 @@ tracerField/cosineTracerField.C
 tracerField/cosSqrTracerField.C
 tracerField/coneTracerField.C
 tracerField/geodesicCosBellsTracerField.C
+tracerField/geodesicSlottedCylinderTracerField.C
 tracerField/geodesicGaussiansTracerField.C
 tracerField/schaerRadialTracerField.C
 tracerField/schaerRadial3DTracerField.C
