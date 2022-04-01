@@ -12,11 +12,11 @@ void divergentVelocityField::applyToInternalField(surfaceScalarField& phi) const
 
 void divergentVelocityField::applyToBoundary(surfaceScalarField& phi, const label patchI) const
 {
-    const fvMesh& mesh = phi.mesh();
+    const fvPatch& pat = phi.mesh().boundary()[patchI];
     scalarField& bf = phi.boundaryFieldRef()[patchI];
     forAll(bf, faceI)
     {
-        bf[faceI] = velocityAt(mesh.Cf()[faceI], phi.time()) & mesh.Sf()[faceI];
+        bf[faceI] = velocityAt(pat.Cf()[faceI], phi.time()) & pat.Sf()[faceI];
     }
 }
 

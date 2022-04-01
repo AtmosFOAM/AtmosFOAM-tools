@@ -31,5 +31,6 @@ velocityField/geodesicSolidBodyVelocityField.C
 velocityField/solidBodyRotationVelocityField.C
 velocityField/uniformVelocityField.C
 velocityField/constructiveRotorsVelocityField.C
+velocityField/sinusoidalVelocityField.C
 
 LIB = $(FOAM_USER_LIBBIN)/libprescribedFields

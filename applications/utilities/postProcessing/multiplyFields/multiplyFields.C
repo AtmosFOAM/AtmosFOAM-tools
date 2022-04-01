@@ -151,12 +151,13 @@ int main(int argc, char *argv[])
             );
 
             // Avoid division by zero
-            if (powers[1] == -1)
+            if (powers[1] < 0)
             {
                 Info << " adding small\n";
                 vfOther == vfOther + SMALL;
             }
-
+            //vfOther = scales[1] * pow(vfOther, powers[1]);
+            //vfOut.ref() *= vfOther.internalField();
             vfOut *= scales[1] * pow(vfOther, powers[1]);
         }
 

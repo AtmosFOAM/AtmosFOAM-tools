@@ -23,7 +23,6 @@ int main(int argc, char *argv[])
         "specify a non-default tracer name"
     );
     timeSelector::addOptions();
-    #include "addTimeOptions.H"
 
     #include "setRootCase.H"
     #include "createTime.H"

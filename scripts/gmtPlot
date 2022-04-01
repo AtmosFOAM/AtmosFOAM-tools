@@ -2,7 +2,7 @@
 
 # source in input files
 for file in $*; do
-    if [ -a $file ]; then
+    if [ -f $file ]; then
         source $file
     fi
 done

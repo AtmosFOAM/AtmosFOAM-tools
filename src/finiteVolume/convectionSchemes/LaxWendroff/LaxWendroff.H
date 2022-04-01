@@ -22,26 +22,25 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::fv::MPDATA
+    Foam::fv::LaxWendroff
 
 Description
-    MPDATA is MPDATA with variable off-centred time stepping.
+    LaxWendroff with variable off-centred time stepping as an explicit
+     correction on first-order upwind (implicit or explicit)
     Parameters set in a dictionary:
         nCorr 2;    // Number of correctors (default 1)
-        gauge 1;    // MPDATA gauge mimimum (default 0)
         offCentre -1;   // "-1" implies set by Courant number or value [0,1]
-        timeCorrector advective; // flux, advective or none
         FCTlimit false; // Apply Zalesak FCT, true or false
         FCTmin   0;     // If true give min and max or equal for monotone
         FCTmax   0;     // If true give min and max or equal for monotone
     
 SourceFiles
-    MPDATA.C
+    LaxWendroff.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef MPDATA_H
-#define MPDATA_H
+#ifndef LaxWendroff_H
+#define LaxWendroff_H
 
 #include "upwind.H"
 #include "gaussConvectionScheme.H"
@@ -58,31 +57,28 @@ namespace fv
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class MPDATA Declaration
+                           Class LaxWendroff Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class MPDATA
+class LaxWendroff
 :
     public fv::convectionScheme<Type>
 {
     // Private Data
 
-        //- Dictionary for reading the MPDATA parameters
+        //- Dictionary for reading the LaxWendroff parameters
         dictionary dict_;
 
         //- Number of corrections (1 is normal)
         const label nCorr_;
-        
-        // MPDATA gauge (the minimum allowed value)
-        const scalar gauge_;
         
         // Off centering uniform value [0,1] or variable (value <0)
         const scalar offCentre_;
         
         // Use advective or flux form time corrector or none
         word timeCorrector_;
-        
+
         // Apply Zalesak FCT correction with given limits (equal for monotone)
         const Switch FCTlimit_;
         const Type FCTmin_, FCTmax_;
@@ -94,24 +90,20 @@ class MPDATA
 
         //- upwind interpolation
         tmp<gaussConvectionScheme<Type>> tupwindConvection_;
-        
-        //- upwind interpolation using anti-diffusive flux
-        tmp<gaussConvectionScheme<Type>> tantiDConvect_;
 
 public:
 
     //- Runtime type information
-    TypeName("MPDATA");
+    TypeName("LaxWendroff");
 
     // Constructors
 
         //- Construct from components
-        MPDATA
+        LaxWendroff
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
             label nCorr__ = 1,
-            scalar gauge__ = 0,
             scalar offCentre__ = 0,
             word timeCorrector__ = "advective",
             Switch FCTlimit__ = false,
@@ -122,7 +114,6 @@ public:
             convectionScheme<Type>(mesh, faceFlux),
             dict_(),
             nCorr_(nCorr__),
-            gauge_(gauge__),
             offCentre_(offCentre__),
             timeCorrector_(timeCorrector__),
             FCTlimit_(FCTlimit__),
@@ -144,26 +135,11 @@ public:
                         )
                     )
                 )
-            ),
-            tantiDConvect_
-            (
-                tmp<gaussConvectionScheme<Type>>
-                (
-                    new gaussConvectionScheme<Type>
-                    (
-                        mesh,
-                        antiD(),
-                        tmp<surfaceInterpolationScheme<Type>>
-                        (
-                            new upwind<Type>(mesh, antiD())
-                        )
-                    )
-                )
             )
         {}
 
         //- Construct from mesh, faceFlux and Istream
-        MPDATA
+        LaxWendroff
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -173,7 +149,6 @@ public:
             convectionScheme<Type>(mesh, faceFlux),
             dict_(is),
             nCorr_(readLabel(dict_.lookup("nCorr"))),
-            gauge_(readScalar(dict_.lookup("gauge"))),
             offCentre_(readScalar(dict_.lookup("offCentre"))),
             timeCorrector_(dict_.lookupOrDefault<word>("timeCorrector", "advective")),
             FCTlimit_(dict_.lookup("FCTlimit")),
@@ -195,21 +170,6 @@ public:
                         )
                     )
                 )
-            ),
-            tantiDConvect_
-            (
-                tmp<gaussConvectionScheme<Type>>
-                (
-                    new gaussConvectionScheme<Type>
-                    (
-                        mesh,
-                        antiD(),
-                        tmp<surfaceInterpolationScheme<Type>>
-                        (
-                            new upwind<Type>(mesh, antiD())
-                        )
-                    )
-                )
             )
         {
             if (offCentre_ >= 0.5 - SMALL) timeCorrector_ = "none";
@@ -218,10 +178,11 @@ public:
             (
                 timeCorrector_ != "advective"
              && timeCorrector_ != "flux"
+             && timeCorrector_ != "RK2"
              && timeCorrector_ != "none"
             )
             {
-                FatalErrorIn("MPDATA::MPDATA")
+                FatalErrorIn("LaxWendroff::LaxWendroff")
                     << "timeCorrector must be one of advective, flux or none but "
                     << timeCorrector_ << " was given" << exit(FatalError);
                 
@@ -229,10 +190,10 @@ public:
         }
         
         //- Disallow default bitwise copy construction
-        MPDATA(const MPDATA&) = delete;
+        LaxWendroff(const LaxWendroff&) = delete;
 
         //- Destructor
-        ~MPDATA()
+        ~LaxWendroff()
         {
             delete antiDPtr_;
         }
@@ -248,12 +209,6 @@ public:
             return tupwindConvection_();
         }
 
-        //- Access to anti-diffusive convection scheme
-        const gaussConvectionScheme<Type>& antiDConvect() const
-        {
-            return tantiDConvect_();
-        }
-        
         //- Calculate the anti-diffusive flux
         void calculateAntiD
         (
@@ -290,7 +245,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const MPDATA&) = delete;
+        void operator=(const LaxWendroff&) = delete;
 };
 
 
@@ -305,7 +260,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    #include "MPDATA.C"
+    #include "LaxWendroff.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

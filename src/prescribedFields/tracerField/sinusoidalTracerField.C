@@ -12,8 +12,6 @@ sinusoidalTracerField::sinusoidalTracerField
 :
     tracerField(velocityField),
     
-    mag(dict.lookupOrDefault<scalar>("mag", scalar(0))),
-    
     a_x(dict.lookupOrDefault<scalar>("a_x", scalar(0))),
     a_y(dict.lookupOrDefault<scalar>("a_y", scalar(0))),
     a_z(dict.lookupOrDefault<scalar>("a_z", scalar(0))),
@@ -34,7 +32,7 @@ sinusoidalTracerField::sinusoidalTracerField
     phi_y(dict.lookupOrDefault<scalar>("phi_y", scalar(0))),
     phi_z(dict.lookupOrDefault<scalar>("phi_z", scalar(0))),
     
-    funcMax(dict.lookupOrDefault<scalar>("funcMax", -GREAT)),
+    funcMax(dict.lookupOrDefault<scalar>("funcMax", GREAT)),
     funcMin(dict.lookupOrDefault<scalar>("funcMin", -GREAT))
 {};
 
@@ -47,9 +45,9 @@ scalar sinusoidalTracerField::tracerAt
     scalar x = p.x();
     scalar y = p.y();
     scalar z = p.z();
-    scalar func = mag * (a_x + b_x*Foam::cos(2*M_PI*k_x*x/L_x - phi_x))
-                      * (a_y + b_y*Foam::cos(2*M_PI*k_y*y/L_y - phi_y))
-                      * (a_z + b_z*Foam::cos(2*M_PI*k_z*z/L_z - phi_z));
+    scalar func =  (a_x + b_x*Foam::cos(2*M_PI*k_x*(x-phi_x)/L_x))
+                 * (a_y + b_y*Foam::cos(2*M_PI*k_y*(y-phi_y)/L_y))
+                 * (a_z + b_z*Foam::cos(2*M_PI*k_z*(z-phi_z)/L_z));
     return max(min(func, funcMax), funcMin);
 }
 

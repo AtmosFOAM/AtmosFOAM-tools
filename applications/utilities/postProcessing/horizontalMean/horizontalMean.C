@@ -35,211 +35,143 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "argList.H"
-#include "OFstream.H"
-#include "cellSet.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+template<class Type>
+void mapFields
+(
+    const GeometricField<Type, fvPatchField, volMesh>& vfIn,
+    GeometricField<Type, fvPatchField, volMesh>& vfOut,
+    const label nConsec
+)
+{
+    Info << "Mapping " << vfOut.name() << endl;
+
+    label cellI = 0;
+    forAll(vfOut, cellOut)
+    {
+        for(label i = 0; i < nConsec; i++)
+        {
+            vfOut[cellOut] += vfIn[cellI]*vfIn.mesh().V()[cellI];
+            cellI++;
+        }
+        vfOut[cellOut] /= vfOut.mesh().V()[cellOut];
+    }
+    vfOut.correctBoundaryConditions();
+    vfOut.write();
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
 {
     timeSelector::addOptions();
-    #include "addDictOption.H"
-    argList::addOption
-    (
-        "region",
-        "meshRegion",
-        "specify a non-default region to plot"
-    );
-    argList::addOption
-    (
-        "cellSet", "cellSetName", "only calculate sums for a subset of cells"
-    );
+    argList::validArgs.append("targetCase");
+    argList::validArgs.append("nConsecCells");
+    argList::validArgs.append("fields");
 
-#   include "addTimeOptions.H"
 #   include "setRootCase.H"
 #   include "createTime.H"
+#   include "createMesh.H"
     instantList timeDirs = timeSelector::select0(runTime, args);
 
-    // Check for plotting non-default region
-    const string meshRegion = args.optionFound("region") ?
-                              args.optionRead<string>("region") :
-                              fvMesh::defaultRegion;
+    // Target case
+    fileName targetPath = args[1];
+    
+    // Number of consecutive cells to average
+    const label nConsec = readLabel(IStringStream(args[2])());
 
-    Info << "Create mesh for time = " << runTime.timeName() <<  " region "
-         << meshRegion << endl;
+    // Initialize the set of selected fields from the command-line options
+    wordList fields;
+    IStringStream(args[3])() >> fields;
 
-    Foam::fvMesh mesh
+    // Target time
+    Time runTimeTarget
     (
-        Foam::IOobject
+        Time::controlDictName,
+        targetPath.path().toAbsolute(),
+        fileName(targetPath.name())
+    );
+    
+    // Target mesh
+    fvMesh meshTarget
+    (
+        IOobject
         (
-            meshRegion,
-            runTime.timeName(),
-            runTime,
-            IOobject::MUST_READ
+            fvMesh::defaultRegion,
+            runTimeTarget.timeName(),
+            runTimeTarget
         )
     );
 
-    // List of cells to sum
-    labelList sumCells;
-    if (args.optionFound("cellSet"))
+    // Check that meshes are compatible
+    label cellI = 0;
+    forAll(meshTarget.V(), cellOut)
     {
-        const word cellSetName(args.optionRead<string>("cellSet"));
-        cellSet cells(mesh, cellSetName);
-        sumCells = cells.toc();
-    }
-    else
-    {
-        // Select all cells
-        sumCells.setSize(mesh.nCells());
-
-        forAll(mesh.cells(), cellI)
+        scalar volOut = 0;
+        for(label i = 0; i < nConsec; i++)
         {
-            sumCells[cellI] = cellI;
+            volOut += mesh.V()[cellI];
+            cellI++;
         }
-    }
-
-    const word dictName("horizontalMeanDict");
-    #include "setSystemMeshDictionaryIO.H"
-    IOdictionary hMeanDict(dictIO);
-    Info << "\nReading dictionary " << hMeanDict.name() << endl;
-    
-    const scalarList levelInterfaces(hMeanDict.lookup("levelInterfaces"));
-    const List<Pair<word>> fieldNamesAndDensities
-    (
-        hMeanDict.lookup("fieldNamesAndDensities")
-    );
-    
-    // Check that levelInterfaces are monotonically increasing
-    for(label il = 0; il < levelInterfaces.size()-1; il++)
-    {
-        if (levelInterfaces[il+1] <= levelInterfaces[il])
+        if (abs(volOut - meshTarget.V()[cellOut]) > SMALL)
         {
             FatalErrorIn("horizontalMean")
-                << "levelInterfaces must be monotonically increasing, not "
-                << levelInterfaces << exit(FatalError);
+                 << " meshes are not compatible with nCconsec = " << nConsec
+                 << exit(FatalError);
         }
     }
-    
-    // Mid levels for output
-    const label nLevels = levelInterfaces.size()-1;
-    scalarList levels(nLevels);
-    for(label il = 0; il < nLevels; il++)
-    {
-        levels[il] = 0.5*(levelInterfaces[il] + levelInterfaces[il+1]);
-    }
 
+    // map fields for all times
     forAll(timeDirs, timeI)
     {
         runTime.setTime(timeDirs[timeI], timeI);
+        runTimeTarget.setTime(timeDirs[timeI], timeI);
         Info<< "Time = " << runTime.timeName() << endl;
 
-        mesh.readUpdate();
-
-        // Find the total volume in all cells in each layer
-        scalarList totalVolume(nLevels, scalar(0));
-        forAll(mesh.V(), cellI)
+        forAll(fields, fieldI)
         {
-            const scalar h = mesh.C()[cellI].z();
-            label ilh = -1;
-            for(label il = 0; il < nLevels && ilh == -1; il++)
-            {
-                if (h >= levelInterfaces[il] && h <= levelInterfaces[il+1])
-                {
-                    ilh = il;
-                }
-            }
-            
-            if (ilh != -1)
-            {
-                totalVolume[ilh] += mesh.V()[cellI];
-            }
-        }
-
-        forAll(fieldNamesAndDensities, fieldI)
-        {
-            const Pair<word>& fieldDensity = fieldNamesAndDensities[fieldI];
+            IOobject fieldHeader(fields[fieldI], runTime.timeName(), mesh,
+                                IOobject::MUST_READ);
         
-            const volScalarField f
-            (
-                IOobject
-                (
-                    fieldDensity[0], runTime.timeName(), mesh,
-                    IOobject::MUST_READ
-                ),
-                mesh
-            );
-            const volScalarField rho
-            (
-                IOobject
-                (
-                    fieldDensity[1], runTime.timeName(), mesh,
-                    IOobject::READ_IF_PRESENT
-                ),
-                mesh,
-                dimensionedScalar("one", dimless, scalar(1))
-            );
-            Info << fieldDensity[0] << " weighted by density " 
-                 << fieldDensity[1] << endl;
-
-            // initialise output file
-            fileName outFile = args.optionFound("cellSet") ?
-                args.rootPath() / args.caseName() / runTime.timeName() 
-                    / "horizontalMean_"+args.optionRead<string>("cellSet")
-                      +"_"+fieldDensity[1]+"_"+fieldDensity[0]+".dat"
-              : args.rootPath() / args.caseName() / runTime.timeName() 
-                    / "horizontalMean_"+fieldDensity[1]+"_"+fieldDensity[0]+".dat";
-            Info << "Writing horizontal means to " << outFile << endl;
-            OFstream os(outFile);
-            os << "#level volFraction rho mean stdDev min max" << endl;
-            
-            scalarList meanfRho(nLevels, scalar(0));
-            scalarList meanSqrfRho(nLevels, scalar(0));
-            scalarList minf(nLevels, GREAT);
-            scalarList maxf(nLevels, -GREAT);
-            scalarList mass(nLevels, scalar(0));
-            scalarList volume(nLevels, scalar(0));
-            
-            // Loop through all cells and asign values to the correct level
-            forAll(sumCells, i)
+            if ( !fieldHeader.typeHeaderOk<volScalarField>(false))
             {
-                const label cellI = sumCells[i];
-                const scalar h = mesh.C()[cellI].z();
-                label ilh = -1;
-                for(label il = 0; il < nLevels && ilh == -1; il++)
-                {
-                    if (h >= levelInterfaces[il] && h <= levelInterfaces[il+1])
-                    {
-                        ilh = il;
-                    }
-                }
-                
-                if (ilh != -1)
-                {
-                    volume[ilh] += mesh.V()[cellI];
-                    mass[ilh] += mesh.V()[cellI]*rho[cellI];
-                    meanfRho[ilh] += mesh.V()[cellI]*f[cellI]*rho[cellI];
-                    meanSqrfRho[ilh] += mesh.V()[cellI]
-                                       *sqr(f[cellI] )*rho[cellI];
-                    if (f[cellI] <= minf[ilh] && rho[cellI] > VSMALL)
-                        { minf[ilh] = f[cellI]; }
-                    if (f[cellI] >= maxf[ilh] && rho[cellI] > VSMALL)
-                        { maxf[ilh] = f[cellI]; }
-                }
+                FatalErrorIn("horizontalMean") << "Cannot read "
+                    << fields[fieldI] << " from time directory "
+                    << runTime.timeName() << exit(FatalError);
             }
-            
-            for(label il = 0; il < nLevels; il++)
+            else if (fieldHeader.headerClassName() == "volScalarField")
             {
-                scalar massMin = max(mass[il], SMALL);
-                scalar var = (massMin*meanSqrfRho[il] - sqr(meanfRho[il]))
-                             /sqr(massMin);
-                os << levels[il] << " " 
-                   << volume[il]/totalVolume[il] << " " 
-                   << massMin/volume[il] << " "
-                   << meanfRho[il]/massMin << " "
-                   << Foam::sqrt(mag(var)) << " " 
-                   << minf[il] << " "
-                   << maxf[il] << endl;
+                volScalarField vfIn(fieldHeader, mesh);
+                volScalarField vfOut
+                (
+                    IOobject(fields[fieldI], runTimeTarget.timeName(), meshTarget),
+                    meshTarget,
+                    dimensionedScalar(fields[fieldI], vfIn.dimensions(), scalar(0))
+                );
+                
+                mapFields<scalar>(vfIn, vfOut, nConsec);
+            }
+            else if (fieldHeader.headerClassName() == "volVectorField")
+            {
+                volVectorField vfIn(fieldHeader, mesh);
+                volVectorField vfOut
+                (
+                    IOobject(fields[fieldI], runTimeTarget.timeName(), meshTarget),
+                    meshTarget,
+                    dimensionedVector(fields[fieldI], vfIn.dimensions(), vector::zero)
+                );
+                
+                mapFields<vector>(vfIn, vfOut, nConsec);
+            }
+            else
+            {
+                FatalErrorIn("horizontalMean") << fields[fieldI] << " is of type "
+                    << fieldHeader.headerClassName()
+                    << " which is not handled by horizontalMean.\n"
+            << "horizontalMean only handles volScalarFields and volVectorFields"
+                    << exit(FatalError);
             }
         }
     }

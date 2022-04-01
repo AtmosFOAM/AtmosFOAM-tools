@@ -45,7 +45,6 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "argList.H"
 #include "OFstream.H"
 #include "cellSet.H"
 
@@ -85,14 +84,13 @@ int main(int argc, char *argv[])
         "where V is the volume of the domain\n"
     );
 
-#   include "addTimeOptions.H"
 #   include "setRootCase.H"
 #   include "createTime.H"
     instantList timeDirs = timeSelector::select0(runTime, args);
 
     const word fieldName(args.args()[1].c_str());
 
-    // Check for plotting non-default region
+    // Check for non-default mesh region
     const string meshRegion = args.optionFound("region") ?
                               args.optionRead<string>("region") :
                               fvMesh::defaultRegion;
@@ -141,7 +139,6 @@ int main(int argc, char *argv[])
     forAll(timeDirs, timeI)
     {
         runTime.setTime(timeDirs[timeI], timeI);
-        Info<< "Time = " << runTime.timeName() << endl;
 
         mesh.readUpdate();
 
@@ -155,7 +152,8 @@ int main(int argc, char *argv[])
 
         if (!header.typeHeaderOk<volScalarField>(false))
         {
-            Info << "No " << fieldName << endl;
+            Info << "Time = " << runTime.timeName() << " no " << fieldName
+                 << endl;
         }
         else if(header.headerClassName() == "volScalarField")
         {

@@ -12,7 +12,7 @@ polynomialTracerField::polynomialTracerField
 :
     tracerField(velocityField),
     
-    a_const(dict.lookupOrDefault<scalar>("a_const", scalar(0))),
+    a_const(readScalar(dict.lookup("a_const"))),
     
     a_x(dict.lookupOrDefault<scalar>("a_x", scalar(0))),
     a_y(dict.lookupOrDefault<scalar>("a_y", scalar(0))),
