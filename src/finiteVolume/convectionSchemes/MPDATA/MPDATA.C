@@ -92,7 +92,7 @@ void MPDATA<Type>::calculateAntiD
         );
         Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
-        // Full face gradient of T
+        // (Full) face gradient of T
         fv::leastSquaresGrad<Type> grad(mesh);
         GeometricField
         <
@@ -114,7 +114,7 @@ void MPDATA<Type>::calculateAntiD
     
     // Smooth where offCentre>0
     surfaceVectorField V("antiDV", linearInterpolate(fvc::reconstruct(antiD())));
-    surfaceScalarField imp = min(2*offCentre, scalar(1));
+    surfaceScalarField imp = min(6*offCentre, scalar(1));
     imp = maxInterp.interpolate(fvc::localMax(imp));
     imp = linearInterpolate(fvc::localMax(imp));
     antiD() = imp*(V & mesh.Sf()) + (1-imp)*antiD();
@@ -126,11 +126,13 @@ void MPDATA<Type>::calculateAntiD
     //Cof = linearInterpolate(fvc::localMax(Cof));
     surfaceScalarField Cof("Cof", maxInterp.interpolate(CoV));
     antiD() /= max(scalar(1), Cof);
-    /*if (mesh.time().writeTime())
+    if (mesh.time().writeTime())
     {
-        Cof.write();
-        CoV.write();
-    }*/
+        //Cof.write();
+        //CoV.write();
+        volScalarField impC("imp", fvc::localMax(imp));
+        impC.write();
+    }
 
     //antiD() = sign(antiD())*min(mag(antiD()), 0.125*faceVol_/dt);
 
@@ -223,27 +225,37 @@ MPDATA<Type>::fvcDiv
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
 
-    // Calculate the local off centering
-    //localMax<scalar> maxInterp(this->mesh());
-    //volScalarField C = CourantNo(faceFlux, dt);
-    surfaceScalarField Cf = 2*dt*mag(faceFlux)/faceVol_;/*max
+    // Calculate the local off centering for each face
+    localMax<scalar> maxInterp(this->mesh());
+    volScalarField C = CourantNo(faceFlux, dt);
+/*    surfaceScalarField Cf = max
     (
-        2*dt*mag(faceFlux)/faceVol_, 
+        dt*mag(faceFlux)/faceVol_, 
         maxInterp.interpolate(C)
-    );*/
+    );
     // Smooth Cf to get smooth offCentre
-    //Cf = maxInterp.interpolate(fvc::localMax(Cf));
-    //Cf = linearInterpolate(fvc::localMax(Cf));
+    Cf = maxInterp.interpolate(fvc::localMax(Cf));
+    Cf = linearInterpolate(fvc::localMax(Cf));*/
     const scalar offCentreMin = timeCorrector_ == "none" ? 0.5 : scalar(0);
-    const surfaceScalarField offCentre = offCentre_ < 0 ?
-        surfaceScalarField("offCentre", max(1-1/(Cf + 0.2), offCentreMin)) :
-        surfaceScalarField
+    surfaceScalarField offCentre
+    (
+        IOobject("offCentre", mesh.time().timeName(), mesh),
+        mesh,
+        dimensionedScalar("", dimless, offCentreMin)
+    );
+    if (offCentre_ < 0)
+    {
+        volScalarField offCentreC
         (
-            IOobject("offCentre", mesh.time().timeName(), mesh),
-            mesh,
-            dimensionedScalar("", dimless, offCentre_),
-            "fixedValue"
+            "offCentreC",
+            max(1-1/(C+0.25), offCentreMin)
         );
+        offCentre = maxInterp.interpolate(offCentreC);
+        offCentreC = fvc::localMax(offCentre);
+        offCentre = linearInterpolate(offCentreC);
+    }
+    else {offCentre == offCentre_;}
+    
     Info << "offCentre goes from " << min(offCentre).value() << " to " 
          << max(offCentre).value() << endl;
     
