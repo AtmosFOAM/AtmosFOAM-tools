@@ -69,7 +69,7 @@ void LaxWendroff<Type>::calculateAntiD
 
     // The correction in space
     antiD() = 0.5*mag(faceFlux)*snGradT/rdelta;
-    
+
     // Apply a correction in time if needed
     if (timeCorrector_ == "advective")
     {
@@ -97,23 +97,24 @@ void LaxWendroff<Type>::calculateAntiD
     else if(timeCorrector_ == "flux")
     {
         antiD() -= max(1-2*offCentre, scalar(0))*0.5*faceFlux*dt
-         *fvc::interpolate(fvc::div(faceFlux, vf, "MPDATA_div"), "MPDATA_idiv");
+         *fvc::interpolate(fvc::div(faceFlux, vf, "LaxWendroff_div"), "LaxWendroff_idiv");
     }
 
     // Smooth where offCentre>0
     surfaceVectorField V("antiDV", linearInterpolate(fvc::reconstruct(antiD())));
-    surfaceScalarField imp = min(2*offCentre, scalar(1));
+    surfaceScalarField imp = offCentre/(offCentre+SMALL);
     imp = maxInterp.interpolate(fvc::localMax(imp));
-    imp = linearInterpolate(fvc::localMax(imp));
+    //imp = linearInterpolate(fvc::localMax(imp));
     antiD() = imp*(V & mesh.Sf()) + (1-imp)*antiD();
-    
-    // Limit to obey Courant number restriction
+
+    /*// Limit to obey Courant number restriction
     volScalarField CoV("CoV", 4*CourantNo(antiD(), dt));
     surfaceScalarField Cof("Cof", maxInterp.interpolate(CoV));
     antiD() /= max(scalar(1), Cof);
-
-    CoV = CourantNo(antiD(), dt);
-    Info << "Anti-diffusive Courant number max: " << max(CoV).value() << endl;
+    */
+    volScalarField CoV("CoV", CourantNo(antiD(), dt));
+    Info << "Anti-diffusive Courant number max: " << max(CoV).value()
+         << endl;
 }
 
 template<class Type>
@@ -184,26 +185,30 @@ LaxWendroff<Type>::fvcDiv
     const fvMesh& mesh = this->mesh();
     const dimensionedScalar& dt = mesh.time().deltaT();
 
-    // Calculate the local off centering
-    surfaceScalarField Cf = 2*dt*mag(faceFlux)/faceVol_;
-    const scalar offCentreMin = timeCorrector_ == "none" ? 0.5 : scalar(0);
-    const surfaceScalarField offCentre = offCentre_ < 0 ?
-        surfaceScalarField("offCentre", max(1-1/(Cf + 0.2), offCentreMin)) :
-        surfaceScalarField
+    // Calculate the local off centering for each face
+    localMax<scalar> maxInterp(this->mesh());
+    volScalarField C = CourantNo(faceFlux, dt);
+
+    surfaceScalarField offCentre
+    (
+        IOobject("offCentre", mesh.time().timeName(), mesh),
+        mesh,
+        dimensionedScalar("", dimless, scalar(0))
+    );
+    if (offCentre_ < 0)
+    {
+        volScalarField offCentreC
         (
-            IOobject("offCentre", mesh.time().timeName(), mesh),
-            mesh,
-            dimensionedScalar("", dimless, offCentre_),
-            "fixedValue"
+            "offCentreC",
+            max(1-1/(C+0.25), scalar(0))
         );
+        offCentre = maxInterp.interpolate(offCentreC);
+    }
+    else {offCentre == offCentre_;}
+    
     Info << "offCentre goes from " << min(offCentre).value() << " to " 
          << max(offCentre).value() << endl;
     
-    if (mesh.time().writeTime())
-    {
-        offCentre.write();
-    }
-
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
     (
@@ -240,7 +245,7 @@ LaxWendroff<Type>::fvcDiv
     
     // Calculate, apply (and update) the correction
     if (nCorr_ > 0) calculateAntiD(faceFlux, T, offCentre);
-    for(label iCorr =1; iCorr < nCorr_; iCorr++)
+    for(label iCorr = 1; iCorr < nCorr_; iCorr++)
     {
         calculateAntiD
         (

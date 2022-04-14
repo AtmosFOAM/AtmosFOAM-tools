@@ -63,12 +63,6 @@ void MPDATA<Type>::calculateAntiD
 
     // Calculate necessary additional fields for the correction
 
-    // The volume field interpolated onto faces for the denominator
-    /*volScalarField T = max
-    (
-        vf + dimensionedScalar("", vf.dimensions(), gauge_ + SMALL),
-        8*dt*mag(fvc::div(faceFlux, vf, "MPDATA_div"))
-    );*/
     GeometricField<Type, fvsPatchField, surfaceMesh> Tf
          = fvc::interpolate(vf, "MPDATA_denom");
 
@@ -81,7 +75,7 @@ void MPDATA<Type>::calculateAntiD
 
     // The correction in space
     antiD() = 0.5/Tf*mag(faceFlux)*snGradT/rdelta;
-    
+
     // Apply a correction in time if needed
     if (timeCorrector_ == "advective")
     {
@@ -92,7 +86,7 @@ void MPDATA<Type>::calculateAntiD
         );
         Uf += (faceFlux - (Uf & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
 
-        // (Full) face gradient of T
+        // Full face gradient of T
         fv::leastSquaresGrad<Type> grad(mesh);
         GeometricField
         <
@@ -111,50 +105,23 @@ void MPDATA<Type>::calculateAntiD
         antiD() -= max(1-2*offCentre, scalar(0))*0.5/Tf*faceFlux*dt
          *fvc::interpolate(fvc::div(faceFlux, vf, "MPDATA_div"), "MPDATA_idiv");
     }
-    
+
     // Smooth where offCentre>0
     surfaceVectorField V("antiDV", linearInterpolate(fvc::reconstruct(antiD())));
-    surfaceScalarField imp = min(6*offCentre, scalar(1));
+    surfaceScalarField imp = offCentre/(offCentre+SMALL);
+    //surfaceScalarField imp = min(6*offCentre, scalar(1));
     imp = maxInterp.interpolate(fvc::localMax(imp));
-    imp = linearInterpolate(fvc::localMax(imp));
+    //imp = linearInterpolate(fvc::localMax(imp));
     antiD() = imp*(V & mesh.Sf()) + (1-imp)*antiD();
-    
-    // Limit to obey Courant number restriction
+
+    /*// Limit to obey Courant number restriction
     volScalarField CoV("CoV", 4*CourantNo(antiD(), dt));
-    //surfaceScalarField Cof("Cof", 8*dt*mag(antiD())/faceVol_);
-    //Cof = maxInterp.interpolate(fvc::localMax(Cof));
-    //Cof = linearInterpolate(fvc::localMax(Cof));
     surfaceScalarField Cof("Cof", maxInterp.interpolate(CoV));
     antiD() /= max(scalar(1), Cof);
-    if (mesh.time().writeTime())
-    {
-        //Cof.write();
-        //CoV.write();
-        volScalarField impC("imp", fvc::localMax(imp));
-        impC.write();
-    }
-
-    //antiD() = sign(antiD())*min(mag(antiD()), 0.125*faceVol_/dt);
-
-/*    // Write out the anti-diffusive velocity if needed
-    if (mesh.time().writeTime())
-    {
-        // Anti-diffusive velocity and divergence
-        surfaceVectorField V
-        (
-            "antiDV",
-            linearInterpolate(fvc::reconstruct(antiD()))
-        );
-        V += (antiD() - (V & mesh.Sf()))*mesh.Sf()/sqr(mesh.magSf());
-        V.write();
-        
-        // divergence of V
-        volScalarField divAntiD("divAntiD", fvc::div(antiD()));
-        divAntiD.write();
-    }*/
-    CoV = CourantNo(antiD(), dt);
-    Info << "Anti-diffusive Courant number max: " << max(CoV).value() << endl;
-
+    */
+    volScalarField CoV("CoV", CourantNo(antiD(), dt));
+    Info << "Anti-diffusive Courant number max: " << max(CoV).value()
+         << endl;
 }
 
 template<class Type>
@@ -228,46 +195,29 @@ MPDATA<Type>::fvcDiv
     // Calculate the local off centering for each face
     localMax<scalar> maxInterp(this->mesh());
     volScalarField C = CourantNo(faceFlux, dt);
-/*    surfaceScalarField Cf = max
-    (
-        dt*mag(faceFlux)/faceVol_, 
-        maxInterp.interpolate(C)
-    );
-    // Smooth Cf to get smooth offCentre
-    Cf = maxInterp.interpolate(fvc::localMax(Cf));
-    Cf = linearInterpolate(fvc::localMax(Cf));*/
-    const scalar offCentreMin = timeCorrector_ == "none" ? 0.5 : scalar(0);
+
     surfaceScalarField offCentre
     (
         IOobject("offCentre", mesh.time().timeName(), mesh),
         mesh,
-        dimensionedScalar("", dimless, offCentreMin)
+        dimensionedScalar("", dimless, scalar(0))
     );
     if (offCentre_ < 0)
     {
         volScalarField offCentreC
         (
             "offCentreC",
-            max(1-1/(C+0.25), offCentreMin)
+            max(1-1/(C+0.25), scalar(0))
         );
         offCentre = maxInterp.interpolate(offCentreC);
-        offCentreC = fvc::localMax(offCentre);
-        offCentre = linearInterpolate(offCentreC);
+//        offCentreC = fvc::localMax(offCentre);
+//        offCentre = linearInterpolate(offCentreC);
     }
     else {offCentre == offCentre_;}
     
     Info << "offCentre goes from " << min(offCentre).value() << " to " 
          << max(offCentre).value() << endl;
     
-    if 
-    (
-        mesh.time().writeTime()
-     || mesh.time().value() == mesh.time().startTime().value()
-    )
-    {
-        offCentre.write();
-    }
-
     // Initialise the divergence to be the first-order upwind divergence
     tmp<GeometricField<Type, fvPatchField, volMesh>> tConvection
     (
@@ -303,9 +253,8 @@ MPDATA<Type>::fvcDiv
     }
     
     // Calculate, apply (and update) the correction
-    //if (nCorr_ > 0) calculateAntiD(faceFlux, vf, offCentre);
     if (nCorr_ > 0) calculateAntiD(faceFlux, T, offCentre);
-    for(label iCorr =1; iCorr < nCorr_; iCorr++)
+    for(label iCorr = 1; iCorr < nCorr_; iCorr++)
     {
         calculateAntiD
         (
