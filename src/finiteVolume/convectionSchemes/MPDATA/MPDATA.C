@@ -110,17 +110,16 @@ void MPDATA<Type>::calculateAntiD
     surfaceVectorField V("antiDV", linearInterpolate(fvc::reconstruct(antiD())));
     surfaceScalarField imp = offCentre/(offCentre+SMALL);
     imp = maxInterp.interpolate(fvc::localMax(imp));
-    imp = linearInterpolate(fvc::localMax(imp));
+    //imp = linearInterpolate(fvc::localMax(imp));
     antiD() = imp*(V & mesh.Sf()) + (1-imp)*antiD();
 
-    /*// Limit to obey Courant number restriction
+    // Limit to obey Courant number restriction
     volScalarField CoV("CoV", 4*CourantNo(antiD(), dt));
-    surfaceScalarField Cof("Cof", maxInterp.interpolate(CoV));
-    antiD() /= max(scalar(1), Cof);
-    */
-    volScalarField CoV("CoV", CourantNo(antiD(), dt));
     Info << "Anti-diffusive Courant number max: " << max(CoV).value()
          << endl;
+    surfaceScalarField Cof("Cof", maxInterp.interpolate(CoV));
+    antiD() /= max(scalar(1), Cof);
+    
 }
 
 template<class Type>
