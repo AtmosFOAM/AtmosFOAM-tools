@@ -109,9 +109,8 @@ void MPDATA<Type>::calculateAntiD
     // Smooth where offCentre>0
     surfaceVectorField V("antiDV", linearInterpolate(fvc::reconstruct(antiD())));
     surfaceScalarField imp = offCentre/(offCentre+SMALL);
-    //surfaceScalarField imp = min(6*offCentre, scalar(1));
     imp = maxInterp.interpolate(fvc::localMax(imp));
-    //imp = linearInterpolate(fvc::localMax(imp));
+    imp = linearInterpolate(fvc::localMax(imp));
     antiD() = imp*(V & mesh.Sf()) + (1-imp)*antiD();
 
     /*// Limit to obey Courant number restriction
