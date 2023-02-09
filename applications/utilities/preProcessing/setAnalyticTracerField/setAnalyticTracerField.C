@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     const word tracerDictName = args.optionFound("tracerDict") ?
                                 args.optionRead<word>("tracerDict") :
                                 "tracerFieldDict";
-    Info<< "Reading initial conditions from" << tracerDictName << endl;
+    Info<< "Reading initial conditions from " << tracerDictName << endl;
 
     IOdictionary tracerDict
     (
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     const word velocityDictName = args.optionFound("velocityDict") ?
                                   args.optionRead<word>("velocityDict") :
                                   "velocityFieldDict";
-    Info<< "Reading initial conditions from" << velocityDictName << endl;
+    Info<< "Reading initial conditions from " << velocityDictName << endl;
     IOdictionary velocityDict
     (
         IOobject
@@ -105,8 +105,9 @@ int main(int argc, char *argv[])
             IOobject::NO_WRITE
         )
     );
-
+    Info << "Setting velocityField" << endl;
     autoPtr<velocityField> velocityField(velocityField::New(velocityDict));
+    Info << "Setting tracer" << endl;
     autoPtr<tracerField> tracer
     (
         tracerField::New

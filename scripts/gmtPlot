@@ -33,10 +33,10 @@ if [ "$inputFiles" == "" ]; then
     echo dy=1e-3
     echo ddy=1          \(number of ticks\)
     echo dyg=0          \(y grid spacing\)
-    echo xscale="/86400"
-    echo yscale="*1"
+    echo xscale='/86400'
+    echo yscale='*1'
     echo legPos=x10/10
-    echo nSkip=0        \(number of lines of input files to skip\)
+    echo nSkip=0 or nSkip=\(a b c\)   \(number of lines of input files to skip\)
     echo projection=X15c/10c
     echo or for a log-log plot use 
     echo projection=X15cl/10cl
@@ -45,7 +45,7 @@ if [ "$inputFiles" == "" ]; then
 fi
 
 # setup defaults if necessary
-minMax=`gmt info -C ${inputFiles[0]}`
+minMax=`gmt info -C -h$nSkip ${inputFiles[0]}`
 
 if [ "$col" == "" ]; then col=2; fi
 if [ "$colx" == "" ]; then colx=1; fi
@@ -119,6 +119,9 @@ while  [ $i != ${#inputFiles[*]} ]; do
     if [ ${#colx[*]} -gt $i ]; then cx=${colx[$i]};
     else cx=$colx; fi
     
+    if [ ${#nSkip[*]} -gt $i ]; then nsk=${nSkip[$i]};
+    else nsk=$nSkip; fi
+    
     awk '{
             if \
             ( \
@@ -132,15 +135,14 @@ while  [ $i != ${#inputFiles[*]} ]; do
             else { print $'$cx''$xsc', "-inf" }
         }' $inFile > $outFile.tmp
     if [ ${#symbols[*]} -gt $i ]; then
-        gmt psxy -J -R -A -h$nSkip -S${symbols[$i]} -W${spens[$i]} $outFile.tmp -K -O \
+        gmt psxy -J -R -A -h$nsk -S${symbols[$i]} -W${spens[$i]} $outFile.tmp -K -O \
              >>$outFile
     fi
     if [ ${#pens[*]} -gt $i ]; then
-        gmt psxy -J -R -A -h$nSkip -W${pens[$i]} $outFile.tmp -K -O >> $outFile
+        gmt psxy -J -R -A -h$nsk -W${pens[$i]} $outFile.tmp -K -O >> $outFile
     fi
     let i=$i+1
 done
-rm $outFile.tmp
 
 i=0
 rm -f ${outFile}.legends.dat
@@ -189,4 +191,5 @@ ps2eps -f $outFile > /dev/null 2>&1
 if [ $gv != 0 ]; then 
     gv $outFile &
 fi
+rm $outFile.tmp
 

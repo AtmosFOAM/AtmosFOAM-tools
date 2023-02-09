@@ -113,7 +113,8 @@ int main(int argc, char *argv[])
                 // or 2D domain)
                 const fvPatch& patch = mesh.boundary()[patchI];
                 const fvPatchField<scalar>& boundaryField = vf.boundaryField()[patchI];
-                if(patch.size() < mesh.nCells()) forAll(patch, faceI)
+                if(patch.size() < mesh.nCells() && !patch.coupled())
+                    forAll(patch, faceI)
                 {
                     os << patch.Cf()[faceI][0] << "  " << patch.Cf()[faceI][1] <<"  "
                        << patch.Cf()[faceI][2] << "  "
@@ -177,7 +178,8 @@ int main(int argc, char *argv[])
                 // or 2D domain)
                 const fvPatch& patch = mesh.boundary()[patchI];
                 const fvPatchField<vector>& boundaryField = vf.boundaryField()[patchI];
-                if(patch.size() < mesh.nCells()) forAll(patch, faceI)
+                if(patch.size() < mesh.nCells() && !patch.coupled())
+                     forAll(patch, faceI)
                 {
                     os << patch.Cf()[faceI][0] << "  " << patch.Cf()[faceI][1] <<"  "
                        << patch.Cf()[faceI][2] << "  "
